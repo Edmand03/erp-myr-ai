@@ -1,6 +1,6 @@
 "use server";
 import { db } from "@/lib/prisma";
-import pdfParse from "pdf-parse";
+import * as pdfParse from "pdf-parse";
 import { Decimal } from "@prisma/client/runtime/library";
 
 export async function importInventoryRowsAction(
@@ -30,10 +30,11 @@ export async function importInventoryRowsAction(
     const buffer = Buffer.from(arrayBuffer);
 
     // Parse text from PDF
+    //@ts-ignore
     const pdfData = await pdfParse(buffer);
     const textLines = pdfData.text
       .split("\n")
-      .map((l) => l.trim())
+      .map((l: any) => l.trim())
       .filter(Boolean);
 
     if (textLines.length === 0) {
