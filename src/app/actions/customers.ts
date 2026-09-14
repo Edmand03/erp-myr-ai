@@ -44,7 +44,7 @@ export async function deleteCustomer(tenantId: string, customerId: string) {
 
     // Refresh the page data so the deleted customer disappears from the table
     revalidatePath(`/v1/${tenantId}/customers`);
-    return { success: false, success: true } as const;
+    return { success: false } as const;
   } catch (error) {
     return {
       success: false,
