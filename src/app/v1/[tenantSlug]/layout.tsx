@@ -1,16 +1,15 @@
-"use client";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import React from "react";
+
+interface TenantLayoutProps {
+  children: React.ReactNode;
+  params: Promise<{ tenantSlug: string }>;
+}
 
 export default async function TenantLayout({
   children,
   params,
-}: {
-  children: React.ReactNode;
-  params: { tenantSlug: string };
-}) {
-  const pathname = usePathname();
+}: TenantLayoutProps) {
   const { tenantSlug } = await params;
 
   const navItems = [
@@ -26,22 +25,12 @@ export default async function TenantLayout({
       <aside style={styles.sidebar}>
         <div style={styles.logo}>SaaS ERP</div>
         <nav style={styles.nav}>
-          {navItems.map((item) => {
-            const isActive = pathname === item.href;
-            return (
-              <Link
-                key={item.name}
-                href={item.href}
-                style={{
-                  ...styles.navLink,
-                  ...(isActive ? styles.navLinkActive : {}),
-                }}
-              >
-                <span style={styles.icon}>{item.icon}</span>
-                {item.name}
-              </Link>
-            );
-          })}
+          {navItems.map((item) => (
+            <Link key={item.name} href={item.href} style={styles.navLink}>
+              <span style={styles.icon}>{item.icon}</span>
+              {item.name}
+            </Link>
+          ))}
         </nav>
       </aside>
       <main style={styles.mainContent}>{children}</main>
@@ -83,15 +72,10 @@ const styles = {
     fontWeight: 500,
     transition: "all 0.2s ease",
   },
-  navLinkActive: {
-    backgroundColor: "#3b82f6", // Vibrant Blue
-    color: "#ffffff",
-    boxShadow: "0 4px 12px rgba(59, 130, 246, 0.3)",
-  },
   icon: { fontSize: "18px" },
   mainContent: {
     flexGrow: 1,
-    padding: "0", // Let your pages handle their own padding
+    padding: "0",
     backgroundColor: "#020617",
   },
 };
