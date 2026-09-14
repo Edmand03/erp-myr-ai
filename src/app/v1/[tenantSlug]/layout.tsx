@@ -1,11 +1,9 @@
-//@ts-nocheck
-
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import React from "react";
 
-export default function TenantLayout({
+export default async function TenantLayout({
   children,
   params,
 }: {
@@ -13,11 +11,7 @@ export default function TenantLayout({
   params: { tenantSlug: string };
 }) {
   const pathname = usePathname();
-  //@ts-ignore
-  const resolvedParams = React.use(params);
-
-  //@ts-ignore
-  const tenantSlug = resolvedParams?.tenantSlug;
+  const { tenantSlug } = await params;
 
   const navItems = [
     { name: "Dashboard", href: `/v1/${tenantSlug}/dashboard`, icon: "📊" },
