@@ -15,7 +15,7 @@ export const auth = betterAuth({
     },
   }),
   // 💡 Tell the backend server exactly where it is being hosted:
-  baseURL: process.env.BETTER_AUTH_URL || "http://localhost:3000",
+  baseURL: process.env.BETTER_AUTH_URL,
   emailAndPassword: {
     enabled: true,
   },
