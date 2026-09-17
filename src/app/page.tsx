@@ -21,7 +21,7 @@ const modules: Module[] = [
     title: "Sales & Client Invoicing",
     summary:
       "End-to-end billing pipeline with automated ledger synchronization.",
-    metric: "RM 142,850.00",
+    metric: "142,850",
     metricLabel: "Processed Volume",
     status: "Real-Time Synced",
     bullets: [
@@ -51,7 +51,7 @@ const modules: Module[] = [
     code: "03 // PRC",
     title: "Procurement & Purchase Orders",
     summary: "Transparent vendor commitment tracking and expense management.",
-    metric: "RM 38,400.00",
+    metric: "38,400",
     metricLabel: "Open Commitments",
     status: "Monitored",
     bullets: [
@@ -67,7 +67,7 @@ const modules: Module[] = [
     title: "AR Aging & Risk Control",
     summary:
       "Advanced accounts receivable bucketing to safeguard enterprise cash flow.",
-    metric: "RM 12,150.00",
+    metric: "12,150",
     metricLabel: "Outstanding Risk",
     status: "Secured",
     bullets: [
@@ -370,11 +370,11 @@ function OrbitSystem({
 
 function SalesVisual() {
   const invoices = [
-    ["INV-02481", "RM 12,840", "PAID"],
-    ["INV-02480", "RM 8,420", "PAID"],
-    ["INV-02479", "RM 18,920", "PENDING"],
-    ["INV-02478", "RM 6,180", "PAID"],
-    ["INV-02477", "RM 14,720", "PENDING"],
+    ["INV-02481", "12,840", "PAID"],
+    ["INV-02480", "8,420", "PAID"],
+    ["INV-02479", "18,920", "PENDING"],
+    ["INV-02478", "6,180", "PAID"],
+    ["INV-02477", "14,720", "PENDING"],
   ];
 
   return (
@@ -537,7 +537,7 @@ function ProcurementVisual() {
 
         <div>
           <span>COMMITTED</span>
-          <strong>RM 38,400.00</strong>
+          <strong>38,400</strong>
         </div>
 
         <div>
@@ -574,7 +574,7 @@ function RiskVisual() {
         <span>PORTFOLIO EXPOSURE</span>
 
         <strong>
-          RM 12,150
+          12,150
           <small>OUTSTANDING</small>
         </strong>
 
@@ -957,7 +957,7 @@ export default function Home() {
             <div className="stream-row">
               <span>SALES</span>
               <i />
-              <strong>RM 142,850</strong>
+              <strong>142,850</strong>
               <em>+18.4%</em>
             </div>
 
@@ -971,14 +971,14 @@ export default function Home() {
             <div className="stream-row">
               <span>PROCUREMENT</span>
               <i />
-              <strong>RM 38,400</strong>
+              <strong>38,400</strong>
               <em>12 OPEN</em>
             </div>
 
             <div className="stream-row">
               <span>AR RISK</span>
               <i />
-              <strong>RM 12,150</strong>
+              <strong>12,150</strong>
               <em>3 OVERDUE</em>
             </div>
           </div>
@@ -3563,6 +3563,156 @@ export default function Home() {
             gap: 20px;
             align-items: flex-start;
             flex-direction: column;
+          }
+        }
+
+        /* FINAL MOBILE POLISH — desktop layout remains unchanged */
+        @media (max-width: 700px) {
+          .hero-content,
+          .hero-bottom,
+          .manifesto-grid,
+          .system-header,
+          .system-footer,
+          .module-section,
+          .control-strip-inner,
+          .final-content,
+          .footer-top,
+          .footer-bottom {
+            width: 100%;
+            max-width: 100%;
+          }
+
+          .hero {
+            overflow: hidden;
+          }
+
+          .hero h1 {
+            max-width: 100%;
+            word-break: normal;
+          }
+
+          .hero-copy {
+            margin-left: 0;
+          }
+
+          .hero-meta {
+            flex-wrap: wrap;
+            margin-left: 0;
+          }
+
+          .hero-screen {
+            max-width: 100%;
+            overflow: visible;
+          }
+
+          .screen-wrap {
+            width: 100%;
+          }
+
+          .dashboard-screen {
+            width: 100%;
+          }
+
+          .screen-top {
+            grid-template-columns: 1fr auto;
+          }
+
+          .screen-path {
+            display: none;
+          }
+
+          .screen-live {
+            grid-column: 2;
+          }
+
+          .screen-heading h3 {
+            max-width: 210px;
+            font-size: 16px;
+          }
+
+          .screen-metrics {
+            grid-template-columns: 1fr;
+          }
+
+          .screen-metrics > div:not(:first-child) {
+            display: none;
+          }
+
+          .screen-footer {
+            overflow: hidden;
+            white-space: nowrap;
+          }
+
+          .screen-footer span {
+            overflow: hidden;
+            text-overflow: ellipsis;
+          }
+
+          .module-top,
+          .module-bottom {
+            gap: 12px;
+          }
+
+          .module-top span:last-child,
+          .module-bottom span:last-child {
+            flex-shrink: 0;
+          }
+
+          .module-copy {
+            min-width: 0;
+          }
+
+          .module-copy h2 {
+            max-width: 100%;
+          }
+
+          .module-stage {
+            width: 100%;
+            overflow: hidden;
+          }
+
+          .sales-visual,
+          .warehouse-visual,
+          .procurement-visual,
+          .risk-visual {
+            width: 100%;
+            max-width: 100%;
+          }
+
+          .invoice-stack {
+            max-width: 100%;
+          }
+
+          .invoice-card {
+            max-width: 100%;
+          }
+
+          .warehouse-stats {
+            width: 100%;
+          }
+
+          .control-stream,
+          .stream-row {
+            width: 100%;
+            min-width: 0;
+          }
+
+          .stream-row strong,
+          .stream-row em {
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+          }
+
+          .final-content {
+            position: relative;
+            z-index: 3;
+          }
+
+          .final-content h2 {
+            max-width: 100%;
+            word-break: normal;
           }
         }
 
