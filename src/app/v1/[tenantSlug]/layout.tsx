@@ -22,7 +22,19 @@ export default async function TenantLayout({
 
   return (
     <div style={styles.layoutContainer}>
-      <aside style={styles.sidebar}>
+      <style>{`
+        @media (max-width: 768px) {
+          .app-sidebar {
+            display: none !important; /* Hides sidebar on mobile; change to a mobile header if preferred */
+          }
+          .app-main {
+            width: 100% !important;
+            padding: 12px !important;
+          }
+        }
+      `}</style>
+
+      <aside className="app-sidebar" style={styles.sidebar}>
         <div style={styles.logo}>SaaS ERP</div>
         <nav style={styles.nav}>
           {navItems.map((item) => (
@@ -33,7 +45,10 @@ export default async function TenantLayout({
           ))}
         </nav>
       </aside>
-      <main style={styles.mainContent}>{children}</main>
+
+      <main className="app-main" style={styles.mainContent}>
+        {children}
+      </main>
     </div>
   );
 }
@@ -43,9 +58,12 @@ const styles = {
     display: "flex",
     minHeight: "100vh",
     backgroundColor: "#020617",
+    width: "100%",
+    boxSizing: "border-box" as const,
   },
   sidebar: {
     width: "260px",
+    minWidth: "260px",
     backgroundColor: "#0f172a",
     borderRight: "1px solid #1e293b",
     padding: "32px 20px",
@@ -70,12 +88,11 @@ const styles = {
     borderRadius: "10px",
     fontSize: "14px",
     fontWeight: 500,
-    transition: "all 0.2s ease",
   },
   icon: { fontSize: "18px" },
   mainContent: {
     flexGrow: 1,
-    padding: "0",
+    minWidth: 0,
     backgroundColor: "#020617",
   },
 };

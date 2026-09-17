@@ -56,6 +56,31 @@ export default async function DashboardContent({
 
   return (
     <>
+      <style>{`
+        * {
+          box-sizing: border-box !important;
+        }
+        @media (max-width: 900px) {
+          .responsive-main-grid {
+            grid-template-columns: 1fr !important;
+          }
+        }
+        @media (max-width: 640px) {
+          .responsive-action-grid {
+            grid-template-columns: 1fr !important;
+          }
+          .responsive-log-row {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: 12px !important;
+          }
+          .responsive-log-action {
+            width: 100% !important;
+            justify-content: space-between !important;
+          }
+        }
+      `}</style>
+
       {/* KPI Row */}
       <div style={styles.kpiGrid}>
         {[
@@ -109,6 +134,8 @@ export default async function DashboardContent({
             justifyContent: "space-between",
             alignItems: "center",
             marginBottom: "12px",
+            flexWrap: "wrap",
+            gap: "8px",
           }}
         >
           <h3
@@ -154,11 +181,7 @@ export default async function DashboardContent({
       </div>
 
       {/* Operational Grid */}
-      <div style={styles.mainGrid}>
-        {/* <div>
-          <h1>Customer Management</h1>
-          <ClientPdfImporter tenantId="4942f81e-61bc-4c95-bb1f-eb390c1b349f" />
-        </div> */}
+      <div className="responsive-main-grid" style={styles.mainGrid}>
         {/* Left Column: Quick Operations */}
         <div style={styles.col}>
           <div style={styles.sectionHeaderWrapper}>
@@ -166,7 +189,7 @@ export default async function DashboardContent({
             <span style={styles.sectionSub}>Core ERP Modules</span>
           </div>
 
-          <div style={styles.actionGrid}>
+          <div className="responsive-action-grid" style={styles.actionGrid}>
             {[
               {
                 l: "Sales Management",
@@ -246,7 +269,11 @@ export default async function DashboardContent({
                   const isFullyPaid = balanceDue <= 0;
 
                   return (
-                    <div key={inv.id} style={styles.logRow}>
+                    <div
+                      key={inv.id}
+                      className="responsive-log-row"
+                      style={styles.logRow}
+                    >
                       <div style={styles.logMain}>
                         <div style={styles.logTitleWrapper}>
                           <span style={styles.logBadgeSales}>Invoice</span>
@@ -265,6 +292,7 @@ export default async function DashboardContent({
                         </div>
                       </div>
                       <div
+                        className="responsive-log-action"
                         style={{
                           display: "flex",
                           alignItems: "center",
@@ -294,7 +322,11 @@ export default async function DashboardContent({
                 })}
 
                 {tenant.purchaseOrders.map((po) => (
-                  <div key={po.id} style={styles.logRow}>
+                  <div
+                    key={po.id}
+                    className="responsive-log-row"
+                    style={styles.logRow}
+                  >
                     <div style={styles.logMain}>
                       <div style={styles.logTitleWrapper}>
                         <span style={styles.logBadgePO}>Procurement</span>
@@ -325,591 +357,361 @@ export default async function DashboardContent({
   );
 }
 
-// Styles object remains identical
 const styles = {
   container: {
     minHeight: "100vh",
-
     backgroundColor: "#030712",
-
     color: "#f8fafc",
-
     padding: "40px",
-
     fontFamily: "'Inter', system-ui, sans-serif",
   },
-
   header: {
     display: "flex",
-
     justifyContent: "space-between",
-
     alignItems: "flex-end",
-
     marginBottom: "30px",
-
     maxWidth: "1400px",
-
     marginInline: "auto",
-
     flexWrap: "wrap" as const,
-
     gap: "24px",
-
     borderBottom: "1px solid #1e293b",
-
     paddingBottom: "24px",
   },
-
   headerLeft: { display: "flex", flexDirection: "column" as const, gap: "6px" },
-
   titleRow: {
     display: "flex",
-
     alignItems: "baseline",
-
     gap: "12px",
-
     flexWrap: "wrap" as const,
   },
-
   pageTitle: {
     fontSize: "28px",
-
     fontWeight: 800,
-
     margin: 0,
-
     letterSpacing: "-0.5px",
-
     color: "#ffffff",
   },
-
   badgeSub: {
     fontSize: "12px",
-
     backgroundColor: "#1e293b",
-
     color: "#94a3b8",
-
     padding: "2px 8px",
-
     borderRadius: "6px",
-
     fontWeight: 500,
-
     border: "1px solid #334155",
   },
-
   pageSubtitle: { color: "#64748b", margin: 0, fontSize: "14px" },
-
   topActions: { display: "flex", gap: "12px", alignItems: "center" },
-
   statusBadge: {
     padding: "6px 14px",
-
     background: "rgba(16, 185, 129, 0.1)",
-
     color: "#34d399",
-
     fontSize: "12px",
-
     borderRadius: "20px",
-
     fontWeight: 600,
-
     border: "1px solid rgba(16, 185, 129, 0.25)",
-
     display: "flex",
-
     alignItems: "center",
-
     gap: "6px",
   },
-
   statusDot: { fontSize: "10px" },
-
   userProfile: {
     padding: "6px 14px 6px 6px",
-
     background: "#0b0f19",
-
     border: "1px solid #1e293b",
-
     borderRadius: "24px",
-
     fontWeight: 600,
-
     fontSize: "13px",
-
     display: "flex",
-
     alignItems: "center",
-
     gap: "10px",
-
     color: "#e2e8f0",
   },
-
   userAvatar: {
     width: "28px",
-
     height: "28px",
-
     backgroundColor: "#3b82f6",
-
     color: "#fff",
-
     borderRadius: "50%",
-
     display: "flex",
-
     alignItems: "center",
-
     justifyContent: "center",
-
     fontSize: "12px",
-
     fontWeight: 700,
   },
-
   content: { maxWidth: "1400px", margin: "0 auto" },
-
   kpiGrid: {
     display: "grid",
-
     gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
-
     gap: "20px",
-
     marginBottom: "24px",
   },
-
   kpiCard: {
     background: "#0b0f19",
-
     padding: "24px",
-
     borderRadius: "16px",
-
     border: "1px solid #1e293b",
-
     boxShadow: "0 10px 30px -10px rgba(0,0,0,0.5)",
-
     display: "flex",
-
     flexDirection: "column" as const,
-
     gap: "8px",
   },
-
   kpiHeader: {
     display: "flex",
-
     justifyContent: "space-between",
-
     alignItems: "center",
   },
-
   kpiLabel: {
     fontSize: "12px",
-
     color: "#94a3b8",
-
     textTransform: "uppercase" as const,
-
     fontWeight: 700,
-
     letterSpacing: "0.5px",
   },
-
   kpiIcon: { fontSize: "16px" },
-
   kpiVal: {
     display: "block",
-
     fontSize: "26px",
-
     fontWeight: 800,
-
     letterSpacing: "-0.5px",
-
     margin: "4px 0 0 0",
+    wordBreak: "break-word" as const,
   },
-
   kpiSub: { fontSize: "12px", color: "#64748b" },
-
   agingBanner: {
     background: "#0b0f19",
-
     border: "1px solid #1e293b",
-
     borderRadius: "16px",
-
     padding: "20px 24px",
-
     marginBottom: "30px",
-
     boxShadow: "0 10px 30px -10px rgba(0,0,0,0.5)",
   },
-
   agingGrid: {
     display: "grid",
-
     gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-
     gap: "16px",
   },
-
   agingBucket: {
     background: "#030712",
-
     border: "1px solid #1e293b",
-
     padding: "14px",
-
     borderRadius: "10px",
-
     display: "flex",
-
     flexDirection: "column" as const,
-
     gap: "4px",
   },
-
   bucketLabel: {
     fontSize: "11px",
-
     color: "#94a3b8",
-
     fontWeight: 600,
-
     textTransform: "uppercase" as const,
   },
-
   bucketVal: { fontSize: "18px", fontWeight: 700, fontFamily: "monospace" },
-
   mainGrid: { display: "grid", gridTemplateColumns: "1.3fr 1fr", gap: "24px" },
-
-  col: { display: "flex", flexDirection: "column" as const, gap: "16px" },
-
+  col: {
+    display: "flex",
+    flexDirection: "column" as const,
+    gap: "16px",
+    minWidth: 0,
+  },
   sectionHeaderWrapper: {
     display: "flex",
-
     justifyContent: "space-between",
-
     alignItems: "baseline",
+    flexWrap: "wrap" as const,
+    gap: "4px",
   },
-
   sectionHeader: {
     fontSize: "18px",
-
     fontWeight: 700,
-
     margin: 0,
-
     color: "#f8fafc",
-
     letterSpacing: "-0.3px",
   },
-
   sectionSub: { fontSize: "12px", color: "#64748b" },
-
   actionGrid: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" },
-
   moduleCard: {
     display: "flex",
-
     flexDirection: "column" as const,
-
     justifyContent: "space-between",
-
     background: "#0b0f19",
-
     padding: "20px",
-
     borderRadius: "16px",
-
     border: "1px solid #1e293b",
-
     textDecoration: "none",
-
     color: "#f8fafc",
-
     cursor: "pointer",
-
     transition: "all 0.2s ease",
-
     boxShadow: "0 4px 12px rgba(0,0,0,0.2)",
-
     minHeight: "180px",
   },
-
   moduleTop: {
     display: "flex",
-
     justifyContent: "space-between",
-
     alignItems: "flex-start",
   },
-
   modIconBox: {
     width: "40px",
-
     height: "40px",
-
     backgroundColor: "#111827",
-
     border: "1px solid #334155",
-
     borderRadius: "10px",
-
     display: "flex",
-
     alignItems: "center",
-
     justifyContent: "center",
-
     fontSize: "18px",
   },
-
   modTag: {
     fontSize: "11px",
-
     backgroundColor: "#1e293b",
-
     color: "#94a3b8",
-
     padding: "2px 8px",
-
     borderRadius: "6px",
-
     fontWeight: 500,
   },
-
   modLabel: {
     fontWeight: 700,
-
     fontSize: "15px",
-
     marginTop: "16px",
-
     marginBottom: "4px",
-
     color: "#ffffff",
   },
-
   modDesc: { fontSize: "12px", color: "#64748b", lineHeight: "1.4" },
-
   modFooter: {
     display: "flex",
-
     justifyContent: "space-between",
-
     alignItems: "center",
-
     borderTop: "1px solid #1e293b",
-
     paddingTop: "12px",
-
     marginTop: "16px",
-
     fontSize: "12px",
-
     fontWeight: 600,
-
     color: "#38bdf8",
   },
-
   modArrow: { fontSize: "14px" },
-
   logCard: {
     background: "#0b0f19",
-
     borderRadius: "16px",
-
     border: "1px solid #1e293b",
-
     padding: "8px",
-
     boxShadow: "0 10px 30px -10px rgba(0,0,0,0.5)",
-
     minHeight: "392px",
-
     display: "flex",
-
     flexDirection: "column" as const,
   },
-
   logList: { display: "flex", flexDirection: "column" as const },
-
   logRow: {
     display: "flex",
-
     justifyContent: "space-between",
-
     alignItems: "center",
-
     padding: "16px",
-
     borderBottom: "1px solid #1e293b",
   },
-
-  logMain: { display: "flex", flexDirection: "column" as const, gap: "4px" },
-
-  logTitleWrapper: { display: "flex", alignItems: "center", gap: "8px" },
-
+  logMain: {
+    display: "flex",
+    flexDirection: "column" as const,
+    gap: "4px",
+    minWidth: 0,
+  },
+  logTitleWrapper: {
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+    flexWrap: "wrap" as const,
+  },
   logBadgeSales: {
     fontSize: "10px",
-
     backgroundColor: "rgba(16, 185, 129, 0.1)",
-
     color: "#34d399",
-
     padding: "1px 6px",
-
     borderRadius: "4px",
-
     fontWeight: 700,
-
     border: "1px solid rgba(16, 185, 129, 0.2)",
   },
-
   logBadgePO: {
     fontSize: "10px",
-
     backgroundColor: "rgba(244, 63, 94, 0.1)",
-
     color: "#fb7185",
-
     padding: "1px 6px",
-
     borderRadius: "4px",
-
     fontWeight: 700,
-
     border: "1px solid rgba(244, 63, 94, 0.2)",
   },
-
   logTitle: {
     fontWeight: 700,
-
     fontSize: "14px",
-
     color: "#f8fafc",
-
     fontFamily: "monospace",
   },
-
-  logMeta: { fontSize: "11px", color: "#64748b" },
-
+  logMeta: {
+    fontSize: "11px",
+    color: "#64748b",
+    wordBreak: "break-word" as const,
+  },
   logAmountSales: {
     fontWeight: 800,
-
     fontSize: "14px",
-
     fontFamily: "monospace",
-
     color: "#34d399",
+    whiteSpace: "nowrap" as const,
   },
-
   logAmountPO: {
     fontWeight: 800,
-
     fontSize: "14px",
-
     fontFamily: "monospace",
-
     color: "#fb7185",
+    whiteSpace: "nowrap" as const,
   },
-
   emptyLogs: {
     flex: 1,
-
     display: "flex",
-
     flexDirection: "column" as const,
-
     alignItems: "center",
-
     justifyContent: "center",
-
     padding: "60px 20px",
-
     textAlign: "center" as const,
   },
-
   emptyIcon: { fontSize: "36px", marginBottom: "12px" },
-
   emptyTitle: {
     fontSize: "15px",
-
     fontWeight: 700,
-
     color: "#f1f5f9",
-
     marginBottom: "4px",
   },
-
   emptyDesc: {
     fontSize: "13px",
-
     color: "#64748b",
-
     maxWidth: "280px",
-
     lineHeight: "1.4",
   },
-
   primaryActionBtn: {
     backgroundColor: "#38bdf8",
-
     color: "#030712",
-
     padding: "8px 16px",
-
     borderRadius: "20px",
-
     fontSize: "13px",
-
     fontWeight: 700,
-
     textDecoration: "none",
-
     boxShadow: "0 4px 12px rgba(56, 189, 248, 0.2)",
-
     transition: "all 0.2s ease",
   },
-
   dueBadge: {
     fontSize: "10px",
-
     backgroundColor: "rgba(245, 158, 11, 0.1)",
-
     color: "#f59e0b",
-
     padding: "1px 6px",
-
     borderRadius: "4px",
-
     fontWeight: 600,
-
     border: "1px solid rgba(245, 158, 11, 0.2)",
   },
-
   quickPayBtn: {
     backgroundColor: "#10b981",
-
     color: "#ffffff",
-
     padding: "4px 10px",
-
     borderRadius: "6px",
-
     fontSize: "11px",
-
     fontWeight: 600,
-
     textDecoration: "none",
+    whiteSpace: "nowrap" as const,
   },
 };

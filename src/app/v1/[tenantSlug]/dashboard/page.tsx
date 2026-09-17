@@ -29,7 +29,40 @@ export default async function DashboardPage({
 
   return (
     <div style={styles.container}>
-      <header style={styles.header}>
+      {/* Scoped CSS media queries for mobile adjustments */}
+      <style>{`
+        * {
+          box-sizing: border-box !important;
+        }
+        @media (max-width: 768px) {
+          .dashboard-container {
+            padding: 16px !important;
+          }
+          .dashboard-header {
+            flex-direction: column !important;
+            align-items: stretch !important;
+            gap: 16px !important;
+            padding-bottom: 20px !important;
+            margin-bottom: 20px !important;
+          }
+          .dashboard-top-actions {
+            flex-direction: column !important;
+            align-items: stretch !important;
+            width: 100% !important;
+            gap: 10px !important;
+          }
+          .dashboard-top-actions a {
+            text-align: center !important;
+            width: 100% !important;
+          }
+          .dashboard-user-profile, .dashboard-status-badge {
+            justify-content: center !important;
+            width: 100% !important;
+          }
+        }
+      `}</style>
+
+      <header className="dashboard-header" style={styles.header}>
         <div style={styles.headerLeft}>
           <div style={styles.titleRow}>
             <h1 style={styles.pageTitle}>{tenant.name}</h1>
@@ -39,17 +72,18 @@ export default async function DashboardPage({
             Real-time Operations & Financial Overview
           </p>
         </div>
-        <div style={styles.topActions}>
+
+        <div className="dashboard-top-actions" style={styles.topActions}>
           <Link
             href={`/v1/${tenantSlug}/sales`}
             style={styles.primaryActionBtn}
           >
             + Create Invoice
           </Link>
-          <div style={styles.statusBadge}>
+          <div className="dashboard-status-badge" style={styles.statusBadge}>
             <span style={styles.statusDot}>●</span> System Online
           </div>
-          <div style={styles.userProfile}>
+          <div className="dashboard-user-profile" style={styles.userProfile}>
             <div style={styles.userAvatar}>
               {session.user.name
                 ? session.user.name.charAt(0).toUpperCase()
@@ -77,6 +111,8 @@ const styles = {
     color: "#f8fafc",
     padding: "40px",
     fontFamily: "'Inter', system-ui, sans-serif",
+    width: "100%",
+    overflowX: "hidden" as const,
   },
   header: {
     display: "flex",
@@ -90,7 +126,13 @@ const styles = {
     borderBottom: "1px solid #1e293b",
     paddingBottom: "24px",
   },
-  headerLeft: { display: "flex", flexDirection: "column" as const, gap: "6px" },
+  headerLeft: {
+    display: "flex",
+    flexDirection: "column" as const,
+    gap: "6px",
+    minWidth: 0,
+    flex: 1,
+  },
   titleRow: {
     display: "flex",
     alignItems: "baseline",
@@ -103,6 +145,7 @@ const styles = {
     margin: 0,
     letterSpacing: "-0.5px",
     color: "#ffffff",
+    wordBreak: "break-word" as const,
   },
   badgeSub: {
     fontSize: "12px",
@@ -126,6 +169,7 @@ const styles = {
     display: "flex",
     alignItems: "center",
     gap: "6px",
+    whiteSpace: "nowrap" as const,
   },
   statusDot: { fontSize: "10px" },
   userProfile: {
@@ -139,6 +183,7 @@ const styles = {
     alignItems: "center",
     gap: "10px",
     color: "#e2e8f0",
+    whiteSpace: "nowrap" as const,
   },
   userAvatar: {
     width: "28px",
@@ -152,16 +197,17 @@ const styles = {
     fontSize: "12px",
     fontWeight: 700,
   },
-  content: { maxWidth: "1400px", margin: "0 auto" },
+  content: { maxWidth: "1400px", margin: "0 auto", width: "100%" },
   primaryActionBtn: {
     backgroundColor: "#38bdf8",
     color: "#030712",
-    padding: "8px 16px",
+    padding: "10px 16px",
     borderRadius: "20px",
     fontSize: "13px",
     fontWeight: 700,
     textDecoration: "none",
     boxShadow: "0 4px 12px rgba(56, 189, 248, 0.2)",
-    transition: "all 0.2s ease",
+    display: "inline-block",
+    whiteSpace: "nowrap" as const,
   },
 };

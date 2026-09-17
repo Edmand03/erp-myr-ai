@@ -35,8 +35,22 @@ export default async function InventoryPage({ params }: InventoryProps) {
 
   return (
     <div style={styles.container}>
+      <style>{`
+        * {
+          box-sizing: border-box !important;
+        }
+        @media (max-width: 768px) {
+          .responsive-nav-content {
+            padding: 16px !important;
+          }
+          .responsive-main-content {
+            padding: 20px 16px !important;
+          }
+        }
+      `}</style>
+
       <header style={styles.navbar}>
-        <div style={styles.navContent}>
+        <div className="responsive-nav-content" style={styles.navContent}>
           <div style={styles.navLeft}>
             <Link href={`/v1/${tenantSlug}/dashboard`} style={styles.backLink}>
               <span style={styles.backArrow}>←</span> Return to ERP Hub
@@ -51,7 +65,7 @@ export default async function InventoryPage({ params }: InventoryProps) {
         </div>
       </header>
 
-      <main style={styles.mainContent}>
+      <main className="responsive-main-content" style={styles.mainContent}>
         <ClientPdfInventoryImporter tenantId={tenant.id} />
         {/* Lazy Loaded Dynamic Inventory Stream */}
         <Suspense fallback={<InventorySkeleton />}>
@@ -68,6 +82,8 @@ const styles = {
     backgroundColor: "#030712",
     color: "#f8fafc",
     fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
+    width: "100%",
+    overflowX: "hidden" as const,
   },
   navbar: {
     backgroundColor: "#0b0f19",
@@ -86,11 +102,14 @@ const styles = {
     alignItems: "center",
     flexWrap: "wrap" as const,
     gap: "20px",
+    width: "100%",
   },
   navLeft: {
     display: "flex",
     flexDirection: "column" as const,
     gap: "6px",
+    minWidth: 0,
+    flex: 1,
   },
   backLink: {
     color: "#64748b",
@@ -114,6 +133,7 @@ const styles = {
     margin: 0,
     color: "#ffffff",
     letterSpacing: "-0.5px",
+    wordBreak: "break-word" as const,
   },
   badgeSub: {
     fontSize: "12px",
@@ -123,6 +143,7 @@ const styles = {
     borderRadius: "6px",
     fontWeight: 500,
     border: "1px solid #334155",
+    whiteSpace: "nowrap" as const,
   },
   mainContent: {
     padding: "40px",
@@ -131,5 +152,6 @@ const styles = {
     display: "flex",
     flexDirection: "column" as const,
     gap: "32px",
+    width: "100%",
   },
 };
