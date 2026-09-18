@@ -23,40 +23,83 @@ interface SalesPageProps {
 
 export default async function SalesPage({ params }: SalesPageProps) {
   const { tenantSlug } = await params;
-  const session = await auth.api.getSession({ headers: await headers() });
 
-  if (!session) redirect("/login");
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+
+  if (!session) {
+    redirect("/login");
+  }
 
   const accessCheck = await db.tenantMember.findFirst({
-    where: { userId: session.user.id, tenant: { slug: tenantSlug } },
+    where: {
+      userId: session.user.id,
+      tenant: {
+        slug: tenantSlug,
+      },
+    },
     include: {
       tenant: {
         include: {
-          products: { orderBy: { name: "asc" } },
-          customers: { orderBy: { name: "asc" } },
+          products: {
+            orderBy: {
+              name: "asc",
+            },
+          },
+          customers: {
+            orderBy: {
+              name: "asc",
+            },
+          },
           invoices: {
-            orderBy: { createdAt: "desc" },
-            include: { invoiceItems: { include: { product: true } } },
+            orderBy: {
+              createdAt: "desc",
+            },
+            include: {
+              invoiceItems: {
+                include: {
+                  product: true,
+                },
+              },
+            },
           },
         },
       },
     },
   });
 
-  if (!accessCheck) redirect("/dashboard-redirect");
+  if (!accessCheck) {
+    redirect("/dashboard-redirect");
+  }
+
   const tenant = accessCheck.tenant;
+
+  // =========================================
+  // DUITNOW QR
+  // =========================================
 
   async function generateDuitNowQrAction(invoiceId: string) {
     "use server";
+
     try {
       const invoice = await db.invoice.findUnique({
-        where: { id: invoiceId },
-        include: { customer: true },
+        where: {
+          id: invoiceId,
+        },
+        include: {
+          customer: true,
+        },
       });
 
-      if (!invoice) return { error: "Invoice not found." };
+      if (!invoice) {
+        return {
+          error: "Invoice not found.",
+        };
+      }
 
       const isSandbox = process.env.HITPAY_API_KEY?.startsWith("test_");
+
       const baseUrl = isSandbox
         ? "https://api.sandbox.hit-pay.com"
         : "https://api.hit-pay.com";
@@ -95,9 +138,16 @@ export default async function SalesPage({ params }: SalesPageProps) {
       };
     } catch (err: any) {
       console.error(err);
-      return { error: err.message || "Could not generate DuitNow QR." };
+
+      return {
+        error: err.message || "Could not generate DuitNow QR.",
+      };
     }
   }
+
+  // =========================================
+  // CREATE INVOICE
+  // =========================================
 
   async function createInvoiceServerAction(formDataObj: {
     customerId: string;
@@ -111,22 +161,33 @@ export default async function SalesPage({ params }: SalesPageProps) {
     }>;
   }) {
     "use server";
+
     try {
       const { customerId, invoiceNumber, dueDate, items } = formDataObj;
 
       if (!customerId || !invoiceNumber || !items || items.length === 0) {
-        return { error: "Missing required fields or line items." };
+        return {
+          error: "Missing required fields or line items.",
+        };
       }
 
       const customer = await db.customer.findUnique({
-        where: { id: customerId },
+        where: {
+          id: customerId,
+        },
       });
-      if (!customer) return { error: "Customer not found." };
+
+      if (!customer) {
+        return {
+          error: "Customer not found.",
+        };
+      }
 
       const subtotal = items.reduce(
         (sum, item) => sum + item.quantity * item.unitPrice,
         0,
       );
+
       const sstRate = 0.08;
       const sstAmount = subtotal * sstRate;
       const total = subtotal + sstAmount;
@@ -162,50 +223,81 @@ export default async function SalesPage({ params }: SalesPageProps) {
 
           if (item.productId) {
             await db.product.update({
-              where: { id: item.productId },
-              data: { stockQty: { decrement: item.quantity } },
+              where: {
+                id: item.productId,
+              },
+              data: {
+                stockQty: {
+                  decrement: item.quantity,
+                },
+              },
             });
           }
         }
       });
 
       revalidatePath(`/v1/${tenantSlug}/sales`);
-      return { success: true };
+
+      return {
+        success: true,
+      };
     } catch (err: any) {
       console.error(err);
-      return { error: err.message || "Failed to save invoice." };
+
+      return {
+        error: err.message || "Failed to save invoice.",
+      };
     }
   }
 
+  // =========================================
+  // SERIALIZE INVOICES
+  // =========================================
+
   const serializedInvoices = tenant.invoices.map((inv) => ({
     ...inv,
+
     createdAt: inv.createdAt
       ? new Date(inv.createdAt).toISOString()
       : new Date().toISOString(),
+
     updatedAt: inv.updatedAt
       ? new Date(inv.updatedAt).toISOString()
       : new Date().toISOString(),
+
     dueDate: inv.dueDate
       ? new Date(inv.dueDate).toISOString()
       : new Date().toISOString(),
+
     sstRate: inv.sstRate ? Number(inv.sstRate) : 0,
+
     sstAmount: inv.sstAmount ? Number(inv.sstAmount) : 0,
+
     subtotal: inv.subtotal ? Number(inv.subtotal) : 0,
+
     total: inv.total ? Number(inv.total) : 0,
-    amountPaid: inv.amountPaid ? Number(inv.amountPaid) : 0, // 👈 Added this line to fix the error!
+
+    amountPaid: inv.amountPaid ? Number(inv.amountPaid) : 0,
+
     invoiceItems: inv.invoiceItems.map((item) => ({
       ...item,
+
       unitPrice: item.unitPrice ? Number(item.unitPrice) : 0,
-      //@ts-ignore
+
+      // @ts-ignore
       subtotal: item.subtotal ? Number(item.subtotal) : 0,
+
       product: item.product
         ? {
             ...item.product,
+
             price: item.product.price ? Number(item.product.price) : 0,
+
             createdAt: item.product.createdAt
               ? new Date(item.product.createdAt).toISOString()
               : new Date().toISOString(),
-            //@ts-ignore
+
+            // @ts-ignore
             updatedAt: item.product.updatedAt
               ? //@ts-ignore
                 new Date(item.product.updatedAt).toISOString()
@@ -215,14 +307,24 @@ export default async function SalesPage({ params }: SalesPageProps) {
     })),
   }));
 
+  // =========================================
+  // QUICK CREATE CUSTOMER
+  // =========================================
+
   async function quickCreateCustomer(formData: FormData) {
     "use server";
-    const name = formData.get("name") as string;
-    const company = formData.get("company") as string;
-    const email = formData.get("email") as string;
-    const phone = formData.get("phone") as string;
 
-    if (!name) return;
+    const name = String(formData.get("name") || "").trim();
+
+    const company = String(formData.get("company") || "").trim();
+
+    const email = String(formData.get("email") || "").trim();
+
+    const phone = String(formData.get("phone") || "").trim();
+
+    if (!name) {
+      return;
+    }
 
     await db.customer.create({
       data: {
@@ -237,6 +339,10 @@ export default async function SalesPage({ params }: SalesPageProps) {
     revalidatePath(`/v1/${tenantSlug}/sales`);
   }
 
+  // =========================================
+  // SERIALIZE PRODUCTS
+  // =========================================
+
   const serializedProducts = tenant.products.map((p) => ({
     id: p.id,
     tenantId: p.tenantId,
@@ -248,6 +354,10 @@ export default async function SalesPage({ params }: SalesPageProps) {
     createdAt: p.createdAt.toISOString(),
   }));
 
+  // =========================================
+  // SERIALIZE CUSTOMERS
+  // =========================================
+
   const serializedCustomers = tenant.customers.map((c) => ({
     id: c.id,
     tenantId: c.tenantId,
@@ -258,27 +368,1054 @@ export default async function SalesPage({ params }: SalesPageProps) {
     createdAt: c.createdAt.toISOString(),
   }));
 
+  // =========================================
+  // UI
+  // =========================================
+
   return (
-    <div style={styles.container}>
+    <div className="sales-page">
+      <style>{`
+        * {
+          box-sizing: border-box;
+        }
+
+        html,
+        body {
+          margin: 0;
+          padding: 0;
+        }
+
+        /* =====================================
+           PAGE
+        ===================================== */
+
+        .sales-page {
+          position: relative;
+
+          width: 100%;
+          min-height: 100vh;
+
+          background:
+            radial-gradient(
+              circle at 12% 0%,
+              rgba(56, 189, 248, 0.075),
+              transparent 30%
+            ),
+            radial-gradient(
+              circle at 88% 8%,
+              rgba(99, 102, 241, 0.06),
+              transparent 28%
+            ),
+            #030712;
+
+          color: #f8fafc;
+
+          font-family:
+            Inter,
+            ui-sans-serif,
+            system-ui,
+            -apple-system,
+            BlinkMacSystemFont,
+            "Segoe UI",
+            sans-serif;
+
+          overflow-x: hidden;
+        }
+
+        .sales-page::before {
+          content: "";
+
+          position: fixed;
+          inset: 0;
+
+          pointer-events: none;
+
+          background-image:
+            linear-gradient(
+              rgba(148, 163, 184, 0.02) 1px,
+              transparent 1px
+            ),
+            linear-gradient(
+              90deg,
+              rgba(148, 163, 184, 0.02) 1px,
+              transparent 1px
+            );
+
+          background-size: 48px 48px;
+
+          mask-image:
+            linear-gradient(
+              to bottom,
+              black,
+              transparent 80%
+            );
+        }
+
+        /* =====================================
+           HEADER
+        ===================================== */
+
+        .sales-header {
+          position: sticky;
+
+          top: 0;
+
+          z-index: 50;
+
+          width: 100%;
+
+          background:
+            rgba(3, 7, 18, 0.91);
+
+          border-bottom:
+            1px solid rgba(
+              148,
+              163,
+              184,
+              0.11
+            );
+
+          backdrop-filter:
+            blur(20px);
+
+          -webkit-backdrop-filter:
+            blur(20px);
+        }
+
+        .sales-header-inner {
+          width: 100%;
+
+          max-width: 1500px;
+
+          margin: 0 auto;
+
+          padding:
+            20px 48px;
+
+          display: flex;
+
+          align-items: center;
+
+          justify-content: space-between;
+
+          gap: 30px;
+        }
+
+        .sales-header-left {
+          min-width: 0;
+        }
+
+        .sales-back {
+          display: inline-flex;
+
+          align-items: center;
+
+          gap: 7px;
+
+          color: #64748b;
+
+          text-decoration: none;
+
+          font-size: 11px;
+
+          font-weight: 650;
+
+          transition:
+            color 160ms ease;
+        }
+
+        .sales-back:hover {
+          color: #cbd5e1;
+        }
+
+        .sales-back-arrow {
+          font-size: 15px;
+        }
+
+        .sales-title-row {
+          display: flex;
+
+          align-items: center;
+
+          gap: 11px;
+
+          flex-wrap: wrap;
+
+          margin-top: 7px;
+        }
+
+        .sales-title {
+          margin: 0;
+
+          color: #f8fafc;
+
+          font-size: 20px;
+
+          line-height: 1.25;
+
+          font-weight: 800;
+
+          letter-spacing: -0.5px;
+        }
+
+        .sales-badge {
+          display: inline-flex;
+
+          align-items: center;
+
+          min-height: 24px;
+
+          padding:
+            4px 9px;
+
+          border:
+            1px solid
+            rgba(
+              148,
+              163,
+              184,
+              0.13
+            );
+
+          border-radius: 7px;
+
+          background:
+            rgba(15, 23, 42, 0.75);
+
+          color: #64748b;
+
+          font-size: 8px;
+
+          font-weight: 750;
+
+          letter-spacing: 0.06em;
+
+          text-transform: uppercase;
+        }
+
+        .sales-header-actions {
+          display: flex;
+
+          align-items: center;
+
+          gap: 10px;
+
+          flex-shrink: 0;
+        }
+
+        .sales-header-button {
+          min-height: 42px;
+
+          padding:
+            0 16px;
+
+          border-radius: 10px;
+
+          font-size: 11px;
+
+          font-weight: 750;
+
+          cursor: pointer;
+
+          white-space: nowrap;
+        }
+
+        /* =====================================
+           MAIN
+        ===================================== */
+
+        .sales-main {
+          position: relative;
+
+          z-index: 1;
+
+          width: 100%;
+
+          max-width: 1500px;
+
+          margin: 0 auto;
+
+          padding:
+            40px 48px 80px;
+        }
+
+        .sales-layout {
+          width: 100%;
+        }
+
+        /* =====================================
+           MAIN CARD
+        ===================================== */
+
+        .ledger-card {
+          width: 100%;
+
+          padding: 30px;
+
+          border:
+            1px solid
+            rgba(
+              148,
+              163,
+              184,
+              0.11
+            );
+
+          border-radius: 18px;
+
+          background:
+            linear-gradient(
+              145deg,
+              rgba(11, 15, 25, 0.96),
+              rgba(7, 12, 24, 0.96)
+            );
+
+          box-shadow:
+            0 20px 50px
+            rgba(0, 0, 0, 0.18);
+        }
+
+        .ledger-header {
+          display: flex;
+
+          align-items: flex-start;
+
+          gap: 16px;
+
+          margin-bottom: 28px;
+
+          padding-bottom: 24px;
+
+          border-bottom:
+            1px solid
+            rgba(
+              148,
+              163,
+              184,
+              0.09
+            );
+        }
+
+        .ledger-icon {
+          width: 46px;
+          height: 46px;
+
+          display: flex;
+
+          align-items: center;
+
+          justify-content: center;
+
+          flex: 0 0 auto;
+
+          border:
+            1px solid
+            rgba(
+              56,
+              189,
+              248,
+              0.16
+            );
+
+          border-radius: 12px;
+
+          background:
+            rgba(
+              56,
+              189,
+              248,
+              0.055
+            );
+
+          color: #38bdf8;
+
+          font-size: 18px;
+        }
+
+        .ledger-title {
+          margin: 0;
+
+          color: #f8fafc;
+
+          font-size: 17px;
+
+          line-height: 1.35;
+
+          font-weight: 750;
+
+          letter-spacing: -0.25px;
+        }
+
+        .ledger-subtitle {
+          max-width: 700px;
+
+          margin:
+            6px 0 0;
+
+          color: #64748b;
+
+          font-size: 11px;
+
+          line-height: 1.5;
+        }
+
+        /* =====================================
+           INVOICE LIST
+        ===================================== */
+
+        .invoice-list {
+          display: flex;
+
+          flex-direction: column;
+
+          gap: 18px;
+
+          width: 100%;
+        }
+
+        /* =====================================
+           INVOICE
+        ===================================== */
+
+        .invoice-item {
+          padding: 24px;
+
+          border:
+            1px solid
+            rgba(
+              148,
+              163,
+              184,
+              0.1
+            );
+
+          border-radius: 15px;
+
+          background:
+            rgba(
+              15,
+              23,
+              42,
+              0.54
+            );
+
+          transition:
+            border-color 160ms ease,
+            background 160ms ease,
+            transform 160ms ease;
+        }
+
+        .invoice-item:hover {
+          border-color:
+            rgba(
+              148,
+              163,
+              184,
+              0.19
+            );
+
+          background:
+            rgba(
+              15,
+              23,
+              42,
+              0.72
+            );
+        }
+
+        .invoice-top {
+          display: flex;
+
+          align-items: flex-start;
+
+          justify-content: space-between;
+
+          gap: 28px;
+        }
+
+        .invoice-meta {
+          min-width: 0;
+
+          display: flex;
+
+          flex-direction: column;
+
+          gap: 8px;
+        }
+
+        .invoice-number-row {
+          display: flex;
+
+          align-items: center;
+
+          gap: 9px;
+
+          flex-wrap: wrap;
+        }
+
+        .invoice-number {
+          color: #38bdf8;
+
+          font-family:
+            "SFMono-Regular",
+            Consolas,
+            monospace;
+
+          font-size: 14px;
+
+          font-weight: 800;
+
+          letter-spacing: -0.2px;
+        }
+
+        .invoice-status {
+          display: inline-flex;
+
+          align-items: center;
+
+          min-height: 24px;
+
+          padding:
+            0 9px;
+
+          border-radius: 6px;
+
+          font-size: 9px;
+
+          font-weight: 750;
+
+          letter-spacing: 0.05em;
+        }
+
+        .invoice-customer {
+          color: #94a3b8;
+
+          font-size: 11px;
+        }
+
+        .invoice-customer strong {
+          color: #e2e8f0;
+
+          font-weight: 650;
+        }
+
+        .invoice-financials {
+          display: flex;
+
+          flex-direction: column;
+
+          align-items: flex-end;
+
+          gap: 5px;
+
+          flex-shrink: 0;
+        }
+
+        .invoice-total {
+          color: #f8fafc;
+
+          font-size: 19px;
+
+          line-height: 1;
+
+          font-weight: 850;
+
+          letter-spacing: -0.5px;
+        }
+
+        .invoice-tax {
+          color: #64748b;
+
+          font-size: 9px;
+
+          line-height: 1.4;
+
+          text-align: right;
+        }
+
+        /* =====================================
+           INVOICE DETAILS
+        ===================================== */
+
+        .invoice-details {
+          display: flex;
+
+          flex-direction: column;
+
+          gap: 15px;
+
+          margin-top: 22px;
+
+          padding-top: 18px;
+
+          border-top:
+            1px solid
+            rgba(
+              148,
+              163,
+              184,
+              0.08
+            );
+        }
+
+        .invoice-meta-row {
+          display: flex;
+
+          align-items: center;
+
+          justify-content: space-between;
+
+          gap: 20px;
+
+          color: #64748b;
+
+          font-size: 10px;
+        }
+
+        .invoice-meta-item {
+          min-width: 0;
+        }
+
+        .invoice-meta-item strong {
+          color: #94a3b8;
+
+          font-weight: 650;
+        }
+
+        .invoice-items {
+          display: flex;
+
+          align-items: center;
+
+          flex-wrap: wrap;
+
+          gap: 8px;
+        }
+
+        .invoice-item-tag {
+          display: inline-flex;
+
+          align-items: center;
+
+          min-height: 29px;
+
+          padding:
+            0 10px;
+
+          border:
+            1px solid
+            rgba(
+              148,
+              163,
+              184,
+              0.1
+            );
+
+          border-radius: 7px;
+
+          background:
+            rgba(3, 7, 18, 0.7);
+
+          color: #94a3b8;
+
+          font-size: 10px;
+
+          white-space: nowrap;
+        }
+
+        .invoice-item-tag strong {
+          margin-left: 5px;
+
+          color: #38bdf8;
+
+          font-weight: 700;
+        }
+
+        /* =====================================
+           INVOICE FOOTER
+        ===================================== */
+
+        .invoice-footer {
+          display: flex;
+
+          align-items: center;
+
+          justify-content: space-between;
+
+          gap: 18px;
+
+          margin-top: 22px;
+
+          padding-top: 18px;
+
+          border-top:
+            1px solid
+            rgba(
+              148,
+              163,
+              184,
+              0.08
+            );
+        }
+
+        .invoice-compliance-actions {
+          display: flex;
+
+          align-items: center;
+
+          gap: 9px;
+
+          flex-wrap: wrap;
+        }
+
+        .invoice-action-buttons {
+          display: flex;
+
+          align-items: center;
+
+          justify-content: flex-end;
+
+          gap: 9px;
+
+          flex-wrap: wrap;
+        }
+
+        /* =====================================
+           EMPTY STATE
+        ===================================== */
+
+        .empty-state {
+          display: flex;
+
+          flex-direction: column;
+
+          align-items: center;
+
+          justify-content: center;
+
+          min-height: 340px;
+
+          padding:
+            60px 30px;
+
+          text-align: center;
+
+          border:
+            1px dashed
+            rgba(
+              148,
+              163,
+              184,
+              0.13
+            );
+
+          border-radius: 14px;
+
+          background:
+            rgba(
+              15,
+              23,
+              42,
+              0.25
+            );
+        }
+
+        .empty-icon {
+          width: 58px;
+          height: 58px;
+
+          display: flex;
+
+          align-items: center;
+
+          justify-content: center;
+
+          margin-bottom: 18px;
+
+          border:
+            1px solid
+            rgba(
+              148,
+              163,
+              184,
+              0.11
+            );
+
+          border-radius: 15px;
+
+          background:
+            rgba(
+              15,
+              23,
+              42,
+              0.75
+            );
+
+          font-size: 23px;
+        }
+
+        .empty-title {
+          margin: 0;
+
+          color: #e2e8f0;
+
+          font-size: 14px;
+
+          font-weight: 750;
+        }
+
+        .empty-description {
+          max-width: 380px;
+
+          margin:
+            8px auto 0;
+
+          color: #475569;
+
+          font-size: 11px;
+
+          line-height: 1.6;
+        }
+
+        /* =====================================
+           TABLET
+        ===================================== */
+
+        @media (max-width: 1000px) {
+          .sales-header-inner,
+          .sales-main {
+            padding-left: 32px;
+
+            padding-right: 32px;
+          }
+
+          .sales-header-actions {
+            gap: 8px;
+          }
+
+          .invoice-top {
+            gap: 18px;
+          }
+        }
+
+        /* =====================================
+           MOBILE
+        ===================================== */
+
+        @media (max-width: 760px) {
+          .sales-header {
+            position: relative;
+          }
+
+          .sales-header-inner {
+            align-items: flex-start;
+
+            flex-direction: column;
+
+            padding:
+              18px 20px;
+
+            gap: 16px;
+          }
+
+          .sales-header-actions {
+            width: 100%;
+
+            display: grid;
+
+            grid-template-columns:
+              repeat(2, minmax(0, 1fr));
+
+            gap: 9px;
+          }
+
+          .sales-header-button {
+            width: 100%;
+
+            padding:
+              0 12px;
+
+            font-size: 10px;
+          }
+
+          .sales-title {
+            font-size: 17px;
+          }
+
+          .sales-main {
+            padding:
+              26px 20px 55px;
+          }
+
+          .ledger-card {
+            padding: 20px 16px;
+
+            border-radius: 15px;
+          }
+
+          .ledger-header {
+            gap: 12px;
+
+            margin-bottom: 22px;
+
+            padding-bottom: 18px;
+          }
+
+          .ledger-icon {
+            width: 40px;
+            height: 40px;
+
+            border-radius: 10px;
+
+            font-size: 15px;
+          }
+
+          .ledger-title {
+            font-size: 15px;
+          }
+
+          .ledger-subtitle {
+            font-size: 10px;
+          }
+
+          .invoice-list {
+            gap: 14px;
+          }
+
+          .invoice-item {
+            padding: 19px 16px;
+          }
+
+          .invoice-top {
+            flex-direction: column;
+
+            gap: 15px;
+          }
+
+          .invoice-financials {
+            align-items: flex-start;
+          }
+
+          .invoice-tax {
+            text-align: left;
+          }
+
+          .invoice-meta-row {
+            align-items: flex-start;
+
+            flex-direction: column;
+
+            gap: 7px;
+          }
+
+          .invoice-footer {
+            align-items: stretch;
+
+            flex-direction: column;
+
+            gap: 15px;
+          }
+
+          .invoice-compliance-actions,
+          .invoice-action-buttons {
+            width: 100%;
+          }
+
+          .invoice-action-buttons {
+            justify-content: flex-start;
+          }
+        }
+
+        /* =====================================
+           SMALL MOBILE
+        ===================================== */
+
+        @media (max-width: 480px) {
+          .sales-header-inner {
+            padding:
+              15px 14px;
+          }
+
+          .sales-main {
+            padding:
+              20px 14px 45px;
+          }
+
+          .sales-title {
+            font-size: 15px;
+          }
+
+          .sales-badge {
+            display: none;
+          }
+
+          .sales-header-actions {
+            grid-template-columns: 1fr;
+          }
+
+          .ledger-card {
+            padding:
+              18px 14px;
+          }
+
+          .ledger-header {
+            align-items: flex-start;
+          }
+
+          .ledger-icon {
+            display: none;
+          }
+
+          .invoice-item {
+            padding:
+              17px 14px;
+          }
+
+          .invoice-number {
+            font-size: 13px;
+          }
+
+          .invoice-total {
+            font-size: 17px;
+          }
+
+          .invoice-item-tag {
+            max-width: 100%;
+
+            overflow: hidden;
+
+            text-overflow: ellipsis;
+          }
+        }
+      `}</style>
+
       <PaymentRefresher />
 
-      {/* Fixed Sticky Header Navigation */}
-      <header style={styles.navbar}>
-        <div style={styles.navContent}>
-          <div>
-            <Link href={`/v1/${tenantSlug}/dashboard`} style={styles.backLink}>
-              <span style={styles.backArrow}>←</span> Return to ERP Hub
+      {/* =====================================
+          HEADER
+      ===================================== */}
+
+      <header className="sales-header">
+        <div className="sales-header-inner">
+          <div className="sales-header-left">
+            <Link href={`/v1/${tenantSlug}/dashboard`} className="sales-back">
+              <span className="sales-back-arrow">←</span>
+              Return to ERP Hub
             </Link>
-            <div style={styles.titleWrapper}>
-              <h1 style={styles.title}>{tenant.name} Sales Ledger</h1>
-              <span style={styles.badgeSub}>Enterprise Billing Suite</span>
+
+            <div className="sales-title-row">
+              <h1 className="sales-title">{tenant.name} Sales Ledger</h1>
+
+              <span className="sales-badge">Enterprise Billing Suite</span>
             </div>
           </div>
 
-          <div style={styles.headerActions}>
+          <div className="sales-header-actions">
             <ModalTrigger
               buttonText="＋ Register Client"
-              buttonStyle={styles.secondaryBtn}
+              buttonStyle={{
+                ...styles.secondaryBtn,
+              }}
               modalTitle="Quick Add New Customer"
               modalSubtitle="Register a client instantly for seamless billing selection"
               icon="👤"
@@ -290,6 +1427,7 @@ export default async function SalesPage({ params }: SalesPageProps) {
                 <div style={styles.grid2}>
                   <div style={styles.group}>
                     <label style={styles.label}>Client Name *</label>
+
                     <input
                       name="name"
                       required
@@ -297,8 +1435,10 @@ export default async function SalesPage({ params }: SalesPageProps) {
                       style={styles.input}
                     />
                   </div>
+
                   <div style={styles.group}>
                     <label style={styles.label}>Company / SSM</label>
+
                     <input
                       name="company"
                       placeholder="e.g. Apex Industries"
@@ -306,9 +1446,11 @@ export default async function SalesPage({ params }: SalesPageProps) {
                     />
                   </div>
                 </div>
+
                 <div style={styles.grid2}>
                   <div style={styles.group}>
                     <label style={styles.label}>Email Address</label>
+
                     <input
                       name="email"
                       type="email"
@@ -316,8 +1458,10 @@ export default async function SalesPage({ params }: SalesPageProps) {
                       style={styles.input}
                     />
                   </div>
+
                   <div style={styles.group}>
                     <label style={styles.label}>Phone Number</label>
+
                     <input
                       name="phone"
                       placeholder="+60 12-345 6789"
@@ -325,6 +1469,7 @@ export default async function SalesPage({ params }: SalesPageProps) {
                     />
                   </div>
                 </div>
+
                 <div style={styles.formFooter}>
                   <button type="submit" style={styles.primaryBtn}>
                     Save Client Profile
@@ -334,8 +1479,10 @@ export default async function SalesPage({ params }: SalesPageProps) {
             </ModalTrigger>
 
             <ModalTrigger
-              buttonText="🧾 New Invoice"
-              buttonStyle={styles.primaryBtn}
+              buttonText="＋ New Invoice"
+              buttonStyle={{
+                ...styles.primaryBtn,
+              }}
               modalTitle="New Invoice Entry"
               modalSubtitle="Generate billing items, add catalog goods or custom labor"
               icon="🧾"
@@ -343,9 +1490,9 @@ export default async function SalesPage({ params }: SalesPageProps) {
               <InvoiceForm
                 tenantId={tenant.id}
                 slug={tenantSlug}
-                //@ts-ignore
+                // @ts-ignore
                 products={serializedProducts}
-                //@ts-ignore
+                // @ts-ignore
                 customers={serializedCustomers}
                 onCreateInvoice={createInvoiceServerAction}
               />
@@ -354,114 +1501,129 @@ export default async function SalesPage({ params }: SalesPageProps) {
         </div>
       </header>
 
-      <Suspense fallback={<SkeletalSales />}>
-        {/* Scrollable Layout Context */}
-        <main style={styles.mainLayout}>
-          <div style={styles.tableCol}>
-            <div style={styles.card}>
-              <div style={styles.cardHeader}>
-                <div style={styles.iconBox}>📊</div>
+      {/* =====================================
+          CONTENT
+      ===================================== */}
+
+      <main className="sales-main">
+        <Suspense fallback={<SkeletalSales />}>
+          <div className="sales-layout">
+            <section className="ledger-card">
+              <div className="ledger-header">
+                <div className="ledger-icon">#</div>
+
                 <div>
-                  <h2 style={styles.cardTitle}>
+                  <h2 className="ledger-title">
                     Invoice History & LHDN Registry
                   </h2>
-                  <p style={styles.cardSubtitle}>
-                    Track validation states, payment progress, and compliance
-                    documents
+
+                  <p className="ledger-subtitle">
+                    Track validation states, payment progress, compliance
+                    documents, and invoice activity.
                   </p>
                 </div>
               </div>
 
-              {/* This inner container scrolls independently while headers remain fixed */}
-              <div style={styles.scrollableLedgerList}>
+              <div className="invoice-list">
                 {serializedInvoices.length === 0 ? (
-                  <div style={styles.emptyPrompt}>
-                    <div style={styles.emptyIcon}>📂</div>
-                    <div style={styles.emptyTitle}>No Invoices Issued Yet</div>
-                    <div style={styles.emptyDesc}>
-                      Start by registering a client and clicking "New Invoice"
-                      above.
-                    </div>
+                  <div className="empty-state">
+                    <div className="empty-icon">+</div>
+
+                    <h3 className="empty-title">No Invoices Issued Yet</h3>
+
+                    <p className="empty-description">
+                      Start by registering a client and creating your first
+                      invoice.
+                    </p>
                   </div>
                 ) : (
                   serializedInvoices.map((inv) => {
                     const sst = Number(inv.sstAmount || 0);
+
                     const total = Number(inv.total || 0);
+
                     const isPaid = inv.status === "PAID";
 
                     return (
-                      <div key={inv.id} style={styles.ledgerCard}>
-                        <div style={styles.ledgerCardHeader}>
-                          <div style={styles.invoiceMetaGroup}>
-                            <div
-                              style={{
-                                display: "flex",
-                                alignItems: "center",
-                                gap: "10px",
-                              }}
-                            >
-                              <span style={styles.invoiceNumber}>
+                      <article key={inv.id} className="invoice-item">
+                        {/* TOP */}
+                        <div className="invoice-top">
+                          <div className="invoice-meta">
+                            <div className="invoice-number-row">
+                              <span className="invoice-number">
                                 {inv.invoiceNumber}
                               </span>
+
                               <span
+                                className="invoice-status"
                                 style={{
-                                  ...styles.statusBadge,
                                   backgroundColor: isPaid
-                                    ? "rgba(16, 185, 129, 0.1)"
-                                    : "rgba(245, 158, 11, 0.1)",
+                                    ? "rgba(16, 185, 129, 0.09)"
+                                    : "rgba(245, 158, 11, 0.09)",
+
                                   color: isPaid ? "#34d399" : "#fbbf24",
-                                  borderColor: isPaid
-                                    ? "rgba(16, 185, 129, 0.3)"
-                                    : "rgba(245, 158, 11, 0.3)",
+
+                                  border: `1px solid ${
+                                    isPaid
+                                      ? "rgba(16, 185, 129, 0.24)"
+                                      : "rgba(245, 158, 11, 0.24)"
+                                  }`,
                                 }}
                               >
                                 {isPaid ? "PAID" : "UNPAID"}
                               </span>
                             </div>
-                            <span style={styles.customerName}>
+
+                            <span className="invoice-customer">
                               Client: <strong>{inv.customerName}</strong>
                             </span>
                           </div>
-                          <div style={styles.rowFinancials}>
-                            <span style={styles.totalText}>
+
+                          <div className="invoice-financials">
+                            <span className="invoice-total">
                               RM {total.toFixed(2)}
                             </span>
-                            <span style={styles.sstText}>
-                              Subtotal: RM {Number(inv.subtotal).toFixed(2)} |
+
+                            <span className="invoice-tax">
+                              Subtotal: RM {Number(inv.subtotal).toFixed(2)}
+                              {" · "}
                               SST (8%): RM {sst.toFixed(2)}
                             </span>
                           </div>
                         </div>
 
-                        <div style={styles.ledgerCardBody}>
-                          <div style={styles.metaRow}>
-                            <span style={styles.tinText}>
+                        {/* DETAILS */}
+                        <div className="invoice-details">
+                          <div className="invoice-meta-row">
+                            <span className="invoice-meta-item">
                               <strong>Buyer TIN / SSM:</strong>{" "}
                               {inv.buyerTin || "Not Provided"}
                             </span>
-                            <span style={styles.dueDateText}>
+
+                            <span className="invoice-meta-item">
                               <strong>Due Date:</strong>{" "}
                               {new Date(inv.dueDate).toLocaleDateString()}
                             </span>
                           </div>
-                          <div style={styles.itemsSummary}>
+
+                          <div className="invoice-items">
                             {inv.invoiceItems.map((item) => (
-                              <span key={item.id} style={styles.itemTag}>
+                              <span key={item.id} className="invoice-item-tag">
                                 {item.product
                                   ? item.product.name
-                                  : item.description || "Custom Item"}{" "}
-                                <strong style={{ color: "#38bdf8" }}>
-                                  (x{item.quantity})
-                                </strong>
+                                  : item.description || "Custom Item"}
+
+                                <strong>×{item.quantity}</strong>
                               </span>
                             ))}
                           </div>
                         </div>
 
-                        <div style={styles.ledgerCardFooter}>
-                          <div>
+                        {/* FOOTER */}
+                        <div className="invoice-footer">
+                          <div className="invoice-compliance-actions">
                             {
-                              //@ts-ignore
+                              // @ts-ignore
                               inv.lhdnUuid ? (
                                 <span style={styles.badgeSuccess}>
                                   LHDN Validated ✓
@@ -481,17 +1643,20 @@ export default async function SalesPage({ params }: SalesPageProps) {
                               tenantSlug={tenantSlug}
                             />
                           </div>
-                          <div style={styles.actionButtonGroup}>
+
+                          <div className="invoice-action-buttons">
                             <DownloadPdfButton
                               invoice={inv}
                               tenantName={tenant.name}
                             />
+
                             {!isPaid && (
                               <>
                                 <PaymentButton
                                   invoiceId={inv.id}
                                   slug={tenantSlug}
                                 />
+
                                 <DuitNowQrButton
                                   invoiceId={inv.id}
                                   invoiceNumber={inv.invoiceNumber}
@@ -502,340 +1667,140 @@ export default async function SalesPage({ params }: SalesPageProps) {
                             )}
                           </div>
                         </div>
-                      </div>
+                      </article>
                     );
                   })
                 )}
               </div>
-            </div>
+            </section>
           </div>
-        </main>
-      </Suspense>
+        </Suspense>
+      </main>
     </div>
   );
 }
 
+/* =========================================
+   MODAL / FORM STYLES
+========================================= */
+
 const styles = {
-  container: {
-    height: "100vh",
-    display: "flex",
-    flexDirection: "column" as const,
-    backgroundColor: "#030712",
-    color: "#f8fafc",
-    fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
-    overflow: "hidden", // Locks full window scroll
-  },
-  navbar: {
-    backgroundColor: "#0b0f19",
-    borderBottom: "1px solid #1e293b",
-    flexShrink: 0,
-    zIndex: 50,
-    backdropFilter: "blur(8px)",
-  },
-  navContent: {
-    maxWidth: "1600px",
-    margin: "0 auto",
-    padding: "16px 40px",
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  headerActions: {
-    display: "flex",
-    gap: "12px",
-    alignItems: "center",
-  },
-  backLink: {
-    color: "#64748b",
-    textDecoration: "none",
-    fontSize: "12px",
-    fontWeight: 600,
-    display: "inline-flex",
-    alignItems: "center",
-    gap: "4px",
-    transition: "color 0.2s ease",
-  },
-  backArrow: {
-    fontSize: "14px",
-  },
-  titleWrapper: {
-    display: "flex",
-    alignItems: "baseline",
-    gap: "12px",
-    flexWrap: "wrap" as const,
-    marginTop: "4px",
-  },
-  title: {
-    fontSize: "20px",
-    fontWeight: 800,
-    margin: 0,
-    color: "#ffffff",
-    letterSpacing: "-0.5px",
-  },
-  badgeSub: {
-    fontSize: "11px",
-    backgroundColor: "#1e293b",
-    color: "#94a3b8",
-    padding: "2px 8px",
-    borderRadius: "6px",
-    fontWeight: 500,
-    border: "1px solid #334155",
-  },
-  mainLayout: {
-    flex: 1,
-    padding: "24px 40px",
-    maxWidth: "1400px",
-    width: "100%",
-    margin: "0 auto",
-    overflow: "hidden",
-    display: "flex",
-    flexDirection: "column" as const,
-  },
-  tableCol: {
-    display: "flex",
-    flexDirection: "column" as const,
-    height: "100%",
-  },
-  card: {
-    backgroundColor: "#0b0f19",
-    border: "1px solid #1e293b",
-    borderRadius: "16px",
-    padding: "24px",
-    display: "flex",
-    flexDirection: "column" as const,
-    height: "100%",
-    boxShadow: "0 10px 30px -10px rgba(0, 0, 0, 0.5)",
-  },
-  cardHeader: {
-    display: "flex",
-    alignItems: "flex-start",
-    gap: "16px",
-    marginBottom: "20px",
-    borderBottom: "1px solid #1e293b",
-    paddingBottom: "14px",
-    flexShrink: 0,
-  },
-  iconBox: {
-    width: "38px",
-    height: "38px",
-    backgroundColor: "#111827",
-    border: "1px solid #334155",
-    borderRadius: "10px",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    fontSize: "16px",
-    flexShrink: 0,
-  },
-  cardTitle: {
-    fontSize: "16px",
-    fontWeight: 700,
-    color: "#f8fafc",
-    margin: 0,
-  },
-  cardSubtitle: {
-    fontSize: "12px",
-    color: "#64748b",
-    margin: "2px 0 0 0",
-  },
   quickCustomerForm: {
     display: "flex",
     flexDirection: "column" as const,
-    gap: "18px",
+    gap: "20px",
+    padding: "4px 0",
   },
+
   grid2: {
     display: "grid",
-    gridTemplateColumns: "1fr 1fr",
-    gap: "16px",
+    gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+    gap: "18px",
   },
+
   group: {
     display: "flex",
     flexDirection: "column" as const,
-    gap: "6px",
+    gap: "8px",
   },
+
   label: {
     fontSize: "12px",
     color: "#94a3b8",
-    fontWeight: 600,
+    fontWeight: 650,
   },
+
   input: {
-    backgroundColor: "#111827",
-    color: "#f8fafc",
-    border: "1px solid #1e293b",
-    padding: "11px 14px",
-    borderRadius: "10px",
-    fontSize: "13px",
-    outline: "none",
     width: "100%",
+    minHeight: "46px",
+
+    backgroundColor: "#111827",
+
+    color: "#f8fafc",
+
+    border: "1px solid rgba(148, 163, 184, 0.14)",
+
+    padding: "0 14px",
+
+    borderRadius: "10px",
+
+    fontSize: "13px",
+
+    outline: "none",
   },
+
   formFooter: {
     display: "flex",
     justifyContent: "flex-end",
-    marginTop: "4px",
+
+    paddingTop: "4px",
   },
+
   secondaryBtn: {
-    backgroundColor: "#1e293b",
-    color: "#38bdf8",
-    border: "1px solid #334155",
-    padding: "9px 16px",
-    borderRadius: "10px",
-    fontWeight: 700,
-    fontSize: "12px",
-    cursor: "pointer",
-    transition: "all 0.2s ease",
-  },
-  primaryBtn: {
-    backgroundColor: "#38bdf8",
-    color: "#030712",
-    border: "none",
-    padding: "9px 16px",
-    borderRadius: "10px",
-    fontWeight: 700,
-    fontSize: "12px",
-    cursor: "pointer",
-    transition: "all 0.2s ease",
-  },
-  // 💡 This is the scrollable container holding just the invoice items list
-  scrollableLedgerList: {
-    flex: 1,
-    overflowY: "auto" as const,
-    display: "flex",
-    flexDirection: "column" as const,
-    gap: "14px",
-    paddingRight: "6px",
-  },
-  ledgerCard: {
-    backgroundColor: "#111827",
-    border: "1px solid #1e293b",
-    borderRadius: "12px",
-    padding: "18px 20px",
-    display: "flex",
-    flexDirection: "column" as const,
-    gap: "12px",
-    transition: "border-color 0.2s ease",
-  },
-  ledgerCardHeader: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    gap: "12px",
-  },
-  invoiceMetaGroup: {
-    display: "flex",
-    flexDirection: "column" as const,
-    gap: "4px",
-  },
-  invoiceNumber: {
-    fontWeight: 800,
-    color: "#38bdf8",
-    fontSize: "15px",
-    letterSpacing: "-0.2px",
-  },
-  statusBadge: {
-    fontSize: "10px",
-    padding: "2px 8px",
-    borderRadius: "4px",
-    fontWeight: 700,
-    border: "1px solid",
-    letterSpacing: "0.5px",
-  },
-  customerName: {
-    color: "#94a3b8",
-    fontSize: "12px",
-  },
-  rowFinancials: {
-    display: "flex",
-    flexDirection: "column" as const,
-    alignItems: "flex-end",
-  },
-  totalText: {
-    fontWeight: 800,
-    fontSize: "16px",
-    color: "#f8fafc",
-    letterSpacing: "-0.3px",
-  },
-  sstText: {
-    fontSize: "11px",
-    color: "#64748b",
-    marginTop: "2px",
-  },
-  ledgerCardBody: {
-    display: "flex",
-    flexDirection: "column" as const,
-    gap: "8px",
-    paddingTop: "10px",
-    borderTop: "1px solid #1e293b",
-  },
-  metaRow: {
-    display: "flex",
-    justifyContent: "space-between",
-    fontSize: "12px",
-    color: "#94a3b8",
-  },
-  tinText: {},
-  dueDateText: {},
-  itemsSummary: {
-    display: "flex",
-    flexWrap: "wrap" as const,
-    gap: "6px",
-    marginTop: "2px",
-  },
-  itemTag: {
-    fontSize: "11px",
-    backgroundColor: "#030712",
+    minHeight: "42px",
+
+    backgroundColor: "rgba(15, 23, 42, 0.85)",
+
     color: "#cbd5e1",
-    padding: "3px 8px",
-    borderRadius: "6px",
-    border: "1px solid #1e293b",
-    fontWeight: 500,
-  },
-  ledgerCardFooter: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingTop: "10px",
-    borderTop: "1px solid #1e293b",
-    flexWrap: "wrap" as const,
-    gap: "12px",
-  },
-  badgeSuccess: {
-    display: "inline-block",
-    padding: "4px 12px",
-    backgroundColor: "rgba(16, 185, 129, 0.1)",
-    color: "#34d399",
+
+    border: "1px solid rgba(148, 163, 184, 0.16)",
+
+    padding: "0 16px",
+
+    borderRadius: "10px",
+
+    fontWeight: 700,
+
     fontSize: "11px",
-    fontWeight: 700,
-    borderRadius: "20px",
-    border: "1px solid rgba(16, 185, 129, 0.25)",
+
+    cursor: "pointer",
+
+    transition: "all 160ms ease",
   },
-  actionButtonGroup: {
-    display: "flex",
+
+  primaryBtn: {
+    minHeight: "42px",
+
+    backgroundColor: "#38bdf8",
+
+    color: "#030712",
+
+    border: "none",
+
+    padding: "0 17px",
+
+    borderRadius: "10px",
+
+    fontWeight: 750,
+
+    fontSize: "11px",
+
+    cursor: "pointer",
+
+    transition: "all 160ms ease",
+
+    boxShadow: "0 5px 18px rgba(56, 189, 248, 0.14)",
+  },
+
+  badgeSuccess: {
+    display: "inline-flex",
+
     alignItems: "center",
-    gap: "8px",
-    flexWrap: "wrap" as const,
-  },
-  emptyPrompt: {
-    textAlign: "center" as const,
-    padding: "60px 20px",
-    backgroundColor: "#111827",
-    borderRadius: "12px",
-    border: "1px solid #1e293b",
-  },
-  emptyIcon: {
-    fontSize: "36px",
-    marginBottom: "12px",
-  },
-  emptyTitle: {
-    fontSize: "15px",
-    fontWeight: 700,
-    color: "#f1f5f9",
-    marginBottom: "4px",
-  },
-  emptyDesc: {
-    fontSize: "13px",
-    color: "#64748b",
-    maxWidth: "300px",
-    margin: "0 auto",
-    lineHeight: "1.4",
+
+    minHeight: "29px",
+
+    padding: "0 11px",
+
+    backgroundColor: "rgba(16, 185, 129, 0.08)",
+
+    color: "#34d399",
+
+    fontSize: "9px",
+
+    fontWeight: 750,
+
+    borderRadius: "7px",
+
+    border: "1px solid rgba(16, 185, 129, 0.2)",
   },
 };
