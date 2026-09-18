@@ -17,63 +17,65 @@ type Module = {
 const modules: Module[] = [
   {
     id: "sales",
-    code: "01 // SLS",
+    code: "01",
     title: "Sales & Client Invoicing",
     summary:
-      "End-to-end billing pipeline with automated ledger synchronization.",
+      "A connected billing workflow that keeps invoices, payments, clients, and financial records moving together.",
     metric: "142,850",
-    metricLabel: "Processed Volume",
-    status: "Real-Time Synced",
+    metricLabel: "PROCESSED VOLUME",
+    status: "LIVE",
     bullets: [
-      "PDF & digital invoice dispatch",
+      "Digital invoice generation",
       "Tax & multi-currency support",
       "Client payment tracking",
-      "Line-item discounts & SKU control",
+      "Line-item & SKU control",
     ],
   },
   {
     id: "warehouse",
-    code: "02 // WHS",
+    code: "02",
     title: "Warehouse & Inventory",
-    summary: "Multi-location stock routing with automated valuation models.",
+    summary:
+      "A single inventory layer for stock visibility, valuation, locations, and replenishment.",
     metric: "1,240",
-    metricLabel: "Units In Stock",
-    status: "Optimized",
+    metricLabel: "UNITS IN STOCK",
+    status: "OPTIMIZED",
     bullets: [
-      "PDF inventory importer",
-      "Low-stock detection & alerts",
-      "FIFO / LIFO / Weighted Average",
+      "Inventory importing",
+      "Low-stock detection",
+      "FIFO / LIFO / weighted average",
       "Barcode & serial traceability",
     ],
   },
   {
     id: "procurement",
-    code: "03 // PRC",
+    code: "03",
     title: "Procurement & Purchase Orders",
-    summary: "Transparent vendor commitment tracking and expense management.",
+    summary:
+      "Keep purchasing connected to vendors, approvals, commitments, and the inventory that arrives.",
     metric: "38,400",
-    metricLabel: "Open Commitments",
-    status: "Monitored",
+    metricLabel: "OPEN COMMITMENTS",
+    status: "TRACKING",
     bullets: [
-      "Supplier performance tracking",
+      "Supplier performance",
       "PO-to-inventory matching",
-      "Expense categories linked to ledgers",
-      "Vendor approvals & spending caps",
+      "Expense-linked purchasing",
+      "Approval & spending controls",
     ],
   },
   {
     id: "risk",
-    code: "04 // RSK",
+    code: "04",
     title: "AR Aging & Risk Control",
     summary:
-      "Advanced accounts receivable bucketing to safeguard enterprise cash flow.",
+      "Understand outstanding receivables before they become a problem with visibility into every aging bucket.",
     metric: "12,150",
-    metricLabel: "Outstanding Risk",
-    status: "Secured",
+    metricLabel: "OUTSTANDING RISK",
+    status: "SECURED",
     bullets: [
       "Automated aging breakdown",
-      "Customer risk scoring",
-      "Collection reminders & statements",
+      "Customer risk visibility",
+      "Collection reminders",
       "Doubtful debt provisioning",
     ],
   },
@@ -87,26 +89,40 @@ function useScrollProgress() {
   const [progress, setProgress] = useState(0);
 
   useEffect(() => {
-    let raf = 0;
+    let frame = 0;
 
     const update = () => {
-      const max = document.documentElement.scrollHeight - window.innerHeight;
+      const documentHeight = document.documentElement.scrollHeight;
 
-      setProgress(max > 0 ? window.scrollY / max : 0);
-      raf = 0;
+      const viewportHeight = window.innerHeight;
+
+      const maxScroll = documentHeight - viewportHeight;
+
+      setProgress(maxScroll > 0 ? clamp(window.scrollY / maxScroll) : 0);
+
+      frame = 0;
     };
 
     const onScroll = () => {
-      if (!raf) raf = requestAnimationFrame(update);
+      if (!frame) {
+        frame = requestAnimationFrame(update);
+      }
     };
 
     update();
 
     window.addEventListener("scroll", onScroll, { passive: true });
 
+    window.addEventListener("resize", onScroll);
+
     return () => {
       window.removeEventListener("scroll", onScroll);
-      if (raf) cancelAnimationFrame(raf);
+
+      window.removeEventListener("resize", onScroll);
+
+      if (frame) {
+        cancelAnimationFrame(frame);
+      }
     };
   }, []);
 
@@ -123,6 +139,7 @@ function usePointer() {
     const move = (event: MouseEvent) => {
       setPointer({
         x: event.clientX / window.innerWidth - 0.5,
+
         y: event.clientY / window.innerHeight - 0.5,
       });
     };
@@ -135,17 +152,58 @@ function usePointer() {
   return pointer;
 }
 
-function Counter({ value, suffix = "" }: { value: number; suffix?: string }) {
+function useReveal() {
+  const [visible, setVisible] = useState(new Set<string>());
+
+  useEffect(() => {
+    const elements = document.querySelectorAll("[data-reveal]");
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting && entry.intersectionRatio > 0.12) {
+            const id = entry.target.getAttribute("data-reveal");
+
+            if (id) {
+              setVisible((current) => {
+                const next = new Set(current);
+
+                next.add(id);
+
+                return next;
+              });
+            }
+          }
+        });
+      },
+      {
+        threshold: [0.12, 0.3],
+        rootMargin: "0px 0px -8% 0px",
+      },
+    );
+
+    elements.forEach((element) => observer.observe(element));
+
+    return () => observer.disconnect();
+  }, []);
+
+  return visible;
+}
+
+function Counter({ value }: { value: number }) {
   const [display, setDisplay] = useState(0);
 
   useEffect(() => {
     let frame = 0;
-    const start = performance.now();
-    const duration = 1100;
 
-    const animate = (time: number) => {
-      const progress = clamp((time - start) / duration);
-      const eased = 1 - Math.pow(1 - progress, 3);
+    const start = performance.now();
+
+    const duration = 1200;
+
+    const animate = (timestamp: number) => {
+      const progress = clamp((timestamp - start) / duration);
+
+      const eased = 1 - Math.pow(1 - progress, 4);
 
       setDisplay(Math.round(value * eased));
 
@@ -159,11 +217,16 @@ function Counter({ value, suffix = "" }: { value: number; suffix?: string }) {
     return () => cancelAnimationFrame(frame);
   }, [value]);
 
+  return <>{display.toLocaleString()}</>;
+}
+
+function LogoMark() {
   return (
-    <>
-      {display.toLocaleString()}
-      {suffix}
-    </>
+    <span className="logo-mark">
+      <i />
+      <i />
+      <i />
+    </span>
   );
 }
 
@@ -171,150 +234,204 @@ function Noise() {
   return <div className="noise" aria-hidden="true" />;
 }
 
-function DataPulse() {
-  return (
-    <div className="data-pulse" aria-hidden="true">
-      <span />
-      <span />
-      <span />
-      <span />
-      <span />
-    </div>
-  );
-}
+/* ============================================================
+   HERO DASHBOARD
+============================================================ */
 
-function DashboardScreen({
+function HeroDashboard({
   activeModule,
   pointer,
 }: {
   activeModule: number;
-  pointer: { x: number; y: number };
+  pointer: {
+    x: number;
+    y: number;
+  };
 }) {
   const module = modules[activeModule];
 
   return (
     <div
-      className="screen-wrap"
+      className="hero-dashboard-wrap"
       style={{
         transform: `
-          perspective(1400px)
-          rotateX(${pointer.y * -1.5}deg)
-          rotateY(${pointer.x * 2.5}deg)
+          perspective(1800px)
+          rotateX(${pointer.y * -1.2}deg)
+          rotateY(${pointer.x * 2}deg)
         `,
       }}
     >
-      <div className="screen-glow" />
+      <div className="hero-dashboard-shadow" />
 
-      <div className="dashboard-screen">
-        <div className="screen-top">
-          <div className="screen-brand">
-            <span className="brand-square" />
-            ERP_CORE
+      <div className="hero-dashboard">
+        {/* browser bar */}
+
+        <div className="window-bar">
+          <div className="window-controls">
+            <span />
+            <span />
+            <span />
           </div>
 
-          <div className="screen-path">/ operations / {module.id}</div>
+          <div className="window-url">
+            ledgercore.com / workspace /{module.id}
+          </div>
 
-          <div className="screen-live">
-            <i />
+          <div className="window-status">
+            <span />
             LIVE
           </div>
         </div>
 
-        <div className="screen-body">
-          <aside className="screen-sidebar">
-            {modules.map((item, index) => (
-              <div
-                key={item.id}
-                className={`side-module ${
-                  activeModule === index ? "selected" : ""
-                }`}
-              >
-                <span>{item.code.split(" ")[0]}</span>
-                <strong>{item.title.split(" ")[0]}</strong>
-              </div>
-            ))}
+        {/* content */}
+
+        <div className="dashboard-content">
+          <aside className="dashboard-sidebar">
+            <div className="dashboard-brand">
+              <LogoMark />
+              <span>LEDGERCORE</span>
+            </div>
+
+            <div className="dashboard-nav">
+              {modules.map((item, index) => (
+                <div
+                  key={item.id}
+                  className={`dashboard-nav-item ${
+                    activeModule === index ? "active" : ""
+                  }`}
+                >
+                  <span>{item.code}</span>
+
+                  <strong>{item.title.split(" ")[0]}</strong>
+                </div>
+              ))}
+            </div>
+
+            <div className="dashboard-sidebar-bottom">
+              <span />
+              SYSTEM HEALTH
+              <strong>100%</strong>
+            </div>
           </aside>
 
-          <main className="screen-main">
-            <div className="screen-heading">
+          <div className="dashboard-main">
+            <div className="dashboard-topline">
               <div>
-                <span>ACTIVE SUBSYSTEM</span>
+                <span>ACTIVE SYSTEM</span>
+
                 <h3>{module.title}</h3>
               </div>
 
-              <div className="screen-date">
-                18 SEP 2026
+              <div className="dashboard-date">
+                SEP 18, 2026
                 <br />
-                17:42:08
+                17:42
               </div>
             </div>
 
-            <div className="screen-metrics">
+            <div className="dashboard-stats">
               <div>
-                <span>PRIMARY METRIC</span>
+                <span>{module.metricLabel}</span>
+
                 <strong>{module.metric}</strong>
               </div>
 
               <div>
                 <span>STATUS</span>
-                <strong>{module.status}</strong>
+
+                <strong className="green-text">{module.status}</strong>
               </div>
 
               <div>
-                <span>SYNC</span>
+                <span>SYSTEM SYNC</span>
+
                 <strong>99.98%</strong>
               </div>
             </div>
 
-            <div className="screen-visual">
-              <div className="visual-grid" />
+            <div className="dashboard-chart">
+              <div className="chart-background" />
 
-              <div className="chart-line">
-                <svg viewBox="0 0 700 200" preserveAspectRatio="none">
-                  <path
-                    d="M0 160 C40 150 50 100 90 115 C125 128 135 70 175 86 C210 101 220 50 260 62 C300 74 310 116 350 95 C390 73 405 110 440 83 C480 52 495 90 530 68 C570 45 590 70 620 42 C650 20 670 34 700 12"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                  />
-                </svg>
-              </div>
+              <svg viewBox="0 0 900 280" preserveAspectRatio="none">
+                <defs>
+                  <linearGradient
+                    id="lineGradient"
+                    x1="0%"
+                    x2="100%"
+                    y1="0%"
+                    y2="0%"
+                  >
+                    <stop offset="0%" stopColor="rgba(255,255,255,0.05)" />
 
-              <div className="chart-label label-one">{module.metricLabel}</div>
+                    <stop offset="50%" stopColor="rgba(255,255,255,0.85)" />
 
-              <div className="chart-label label-two">+18.4%</div>
+                    <stop offset="100%" stopColor="rgba(255,255,255,1)" />
+                  </linearGradient>
+                </defs>
 
-              <div className="chart-point point-one" />
-              <div className="chart-point point-two" />
-              <div className="chart-point point-three" />
+                <path
+                  d="
+                    M0 220
+                    C60 218 74 160 130 175
+                    C182 188 197 115 250 135
+                    C301 155 315 88 362 105
+                    C420 125 438 175 492 142
+                    C540 111 562 145 614 112
+                    C672 74 694 118 741 78
+                    C788 36 821 63 900 18
+                  "
+                  fill="none"
+                  stroke="url(#lineGradient)"
+                  strokeWidth="3"
+                />
+              </svg>
+
+              <div className="chart-point chart-point-a" />
+              <div className="chart-point chart-point-b" />
+              <div className="chart-point chart-point-c" />
+
+              <div className="chart-floating-value">+18.4%</div>
             </div>
 
-            <div className="screen-bottom">
-              <div className="mini-bars">
-                {[48, 72, 55, 88, 64, 91, 76, 100, 83, 96].map(
+            <div className="dashboard-bottom-grid">
+              <div className="dashboard-bars">
+                {[34, 48, 42, 61, 52, 67, 58, 76, 69, 89, 77, 94].map(
                   (height, index) => (
-                    <span key={index} style={{ height: `${height}%` }} />
+                    <span
+                      key={index}
+                      style={{
+                        height: `${height}%`,
+                      }}
+                    />
                   ),
                 )}
               </div>
 
-              <div className="screen-log">
+              <div className="dashboard-feed">
                 <div>
-                  <i />
-                  Ledger synchronization complete
+                  <span />
+                  Ledger synchronized
                 </div>
+
                 <div>
-                  <i />
-                  Automated reconciliation running
+                  <span />
+                  Automated reconciliation
+                </div>
+
+                <div>
+                  <span />
+                  Data integrity verified
                 </div>
               </div>
             </div>
-          </main>
+          </div>
         </div>
 
-        <div className="screen-footer">
+        <div className="dashboard-footer">
           <span>ENCRYPTED SESSION</span>
-          <span>API LATENCY 23ms</span>
+
+          <span>API 23ms</span>
+
           <span>ALL SYSTEMS OPERATIONAL</span>
         </div>
       </div>
@@ -322,7 +439,11 @@ function DashboardScreen({
   );
 }
 
-function OrbitSystem({
+/* ============================================================
+   SYSTEM MAP
+============================================================ */
+
+function SystemMap({
   activeModule,
   setActiveModule,
 }: {
@@ -330,37 +451,61 @@ function OrbitSystem({
   setActiveModule: (index: number) => void;
 }) {
   return (
-    <div className="orbit-system">
-      <div className="orbit-ring ring-one" />
-      <div className="orbit-ring ring-two" />
-      <div className="orbit-ring ring-three" />
+    <div className="system-map">
+      <div className="map-aura" />
 
-      <div className="orbit-center">
-        <div className="center-core">
-          <span />
+      <div className="map-ring ring-a" />
+      <div className="map-ring ring-b" />
+      <div className="map-ring ring-c" />
+
+      <div className="map-center">
+        <div className="map-core">
+          <div>
+            <LogoMark />
+          </div>
+
           <strong>ERP</strong>
-          <small>CORE</small>
+
+          <span>CORE</span>
         </div>
       </div>
 
       {modules.map((module, index) => {
         const positions = [
-          { top: "5%", left: "50%" },
-          { top: "50%", right: "2%" },
-          { bottom: "4%", left: "50%" },
-          { top: "50%", left: "2%" },
+          {
+            top: "2%",
+            left: "50%",
+            transform: "translateX(-50%)",
+          },
+          {
+            top: "50%",
+            right: "2%",
+            transform: "translateY(-50%)",
+          },
+          {
+            bottom: "2%",
+            left: "50%",
+            transform: "translateX(-50%)",
+          },
+          {
+            top: "50%",
+            left: "2%",
+            transform: "translateY(-50%)",
+          },
         ];
 
         return (
           <button
             key={module.id}
-            onClick={() => setActiveModule(index)}
-            className={`orbit-node ${activeModule === index ? "active" : ""}`}
+            className={`map-node ${activeModule === index ? "active" : ""}`}
             style={positions[index]}
+            onClick={() => setActiveModule(index)}
           >
-            <span className="node-index">{module.code.slice(0, 2)}</span>
-            <span className="node-title">{module.title.split("&")[0]}</span>
-            <span className="node-status">{module.status}</span>
+            <span className="map-node-number">{module.code}</span>
+
+            <strong>{module.title.split(" & ")[0]}</strong>
+
+            <small>{module.status}</small>
           </button>
         );
       })}
@@ -368,126 +513,142 @@ function OrbitSystem({
   );
 }
 
+/* ============================================================
+   MODULE VISUALS
+============================================================ */
+
 function SalesVisual() {
   const invoices = [
     ["INV-02481", "12,840", "PAID"],
     ["INV-02480", "8,420", "PAID"],
     ["INV-02479", "18,920", "PENDING"],
-    ["INV-02478", "6,180", "PAID"],
-    ["INV-02477", "14,720", "PENDING"],
   ];
 
   return (
-    <div className="module-visual sales-visual">
-      <div className="invoice-stack">
+    <div className="visual-card sales-card">
+      <div className="visual-card-header">
+        <span>TRANSACTION FLOW</span>
+
+        <small>LIVE</small>
+      </div>
+
+      <div className="sales-stack">
         {invoices.map(([id, amount, status], index) => (
           <div
             key={id}
-            className="invoice-card"
+            className="invoice"
             style={{
-              transform: `translateY(${index * 10}px) translateX(${
-                index * 8
-              }px) rotate(${index % 2 === 0 ? -1 : 1}deg)`,
+              transform: `translateY(${index * 20}px) translateX(${
+                index * 12
+              }px) rotate(${index === 1 ? 0 : index === 0 ? -1.5 : 1}deg)`,
             }}
           >
-            <div className="invoice-head">
+            <div className="invoice-top">
               <span>{id}</span>
-              <span className={status === "PAID" ? "paid" : "pending"}>
+
+              <em
+                className={
+                  status === "PAID" ? "invoice-paid" : "invoice-pending"
+                }
+              >
                 {status}
-              </span>
+              </em>
             </div>
 
             <strong>{amount}</strong>
 
-            <div className="invoice-line">
+            <div className="invoice-lines">
               <span />
               <span />
               <span />
             </div>
 
-            <small>CLIENT LEDGER / SYNCHRONIZED</small>
+            <small>CLIENT LEDGER</small>
           </div>
         ))}
       </div>
 
-      <div className="visual-side-data">
-        <span>TRANSACTION FLOW</span>
+      <div className="sales-flow">
+        <div>
+          <span />
+          <strong>Invoice</strong>
 
-        <div className="flow-line">
-          <i />
-          <div>
-            <strong>Invoice</strong>
-            <small>Generated</small>
-          </div>
+          <small>Generated</small>
         </div>
 
-        <div className="flow-line">
-          <i />
-          <div>
-            <strong>Ledger</strong>
-            <small>Synchronized</small>
-          </div>
+        <div>
+          <span />
+          <strong>Ledger</strong>
+
+          <small>Synced</small>
         </div>
 
-        <div className="flow-line">
-          <i />
-          <div>
-            <strong>Payment</strong>
-            <small>Reconciled</small>
-          </div>
+        <div>
+          <span />
+          <strong>Payment</strong>
+
+          <small>Reconciled</small>
         </div>
       </div>
     </div>
   );
 }
 
-function WarehouseVisual() {
-  const cells = Array.from({ length: 64 });
-
+function InventoryVisual() {
   return (
-    <div className="module-visual warehouse-visual">
-      <div className="warehouse-grid">
-        {cells.map((_, index) => (
-          <span
-            key={index}
-            className={
-              index % 9 === 0 ? "occupied" : index % 13 === 0 ? "warning" : ""
-            }
-          >
-            {index % 9 === 0 ? <b /> : index % 13 === 0 ? <i /> : null}
-          </span>
-        ))}
+    <div className="visual-card inventory-card">
+      <div className="inventory-grid">
+        {Array.from({
+          length: 49,
+        }).map((_, index) => {
+          const occupied = index % 7 === 0 || index % 11 === 0;
+
+          const warning = index % 13 === 0;
+
+          return (
+            <span
+              key={index}
+              className={occupied ? "occupied" : warning ? "warning" : ""}
+            >
+              {occupied && <i />}
+            </span>
+          );
+        })}
       </div>
 
-      <div className="warehouse-scan">
-        <div className="scan-beam" />
+      <div className="inventory-scanner">
+        <div className="scan-line" />
 
         <div className="scan-target">
-          <span />
-          <span />
-          <span />
-          <span />
+          <i />
+          <i />
+          <i />
+          <i />
         </div>
 
-        <div className="scan-label">
+        <div className="scan-copy">
           <strong>LOCATION A-14</strong>
-          <small>BARCODE VERIFIED</small>
+
+          <span>BARCODE VERIFIED</span>
         </div>
       </div>
 
-      <div className="warehouse-stats">
+      <div className="inventory-stats">
         <div>
           <span>AVAILABLE</span>
+
           <strong>1,240</strong>
         </div>
 
         <div>
           <span>RESERVED</span>
+
           <strong>184</strong>
         </div>
 
         <div>
           <span>LOW STOCK</span>
+
           <strong>12</strong>
         </div>
       </div>
@@ -505,43 +666,51 @@ function ProcurementVisual() {
   ];
 
   return (
-    <div className="module-visual procurement-visual">
-      <div className="procurement-line">
-        <div className="line-progress" />
+    <div className="visual-card procurement-card">
+      <div className="procurement-intro">
+        <span>PURCHASE PIPELINE</span>
+
+        <strong>Request → Receipt</strong>
       </div>
 
-      <div className="procurement-chain">
+      <div className="procurement-track">
+        <div className="procurement-progress" />
+
         {steps.map(([label, id], index) => (
           <div
             className="procurement-step"
             key={label}
             style={{
-              animationDelay: `${index * 120}ms`,
+              animationDelay: `${index * 110}ms`,
             }}
           >
-            <div className="procurement-node">
-              <span>{String(index + 1).padStart(2, "0")}</span>
+            <div className="procurement-circle">
+              {String(index + 1).padStart(2, "0")}
             </div>
 
-            <small>{label}</small>
+            <span>{label}</span>
+
             <strong>{id}</strong>
           </div>
         ))}
       </div>
 
-      <div className="vendor-panel">
+      <div className="vendor-card">
         <div>
           <span>PRIMARY VENDOR</span>
+
           <strong>GLOBAL SUPPLY CO.</strong>
         </div>
 
         <div>
           <span>COMMITTED</span>
+
           <strong>38,400</strong>
         </div>
 
         <div>
           <span>DELIVERY</span>
+
           <strong>21 SEP</strong>
         </div>
       </div>
@@ -551,26 +720,27 @@ function ProcurementVisual() {
 
 function RiskVisual() {
   return (
-    <div className="module-visual risk-visual">
-      <div className="radar">
-        <div className="radar-ring r1" />
-        <div className="radar-ring r2" />
-        <div className="radar-ring r3" />
-        <div className="radar-cross cross-x" />
-        <div className="radar-cross cross-y" />
+    <div className="visual-card risk-card">
+      <div className="risk-radar">
+        <div className="radar-ring radar-one" />
+        <div className="radar-ring radar-two" />
+        <div className="radar-ring radar-three" />
+
+        <div className="radar-line radar-x" />
+        <div className="radar-line radar-y" />
 
         <div className="radar-sweep" />
 
-        <span className="risk-dot dot-a" />
-        <span className="risk-dot dot-b" />
-        <span className="risk-dot dot-c" />
-        <span className="risk-dot dot-d" />
-        <span className="risk-dot dot-e" />
+        <span className="risk-point point-a" />
+        <span className="risk-point point-b" />
+        <span className="risk-point point-c" />
+        <span className="risk-point point-d" />
+        <span className="risk-point point-e" />
 
-        <div className="radar-center">AR</div>
+        <div className="radar-core">AR</div>
       </div>
 
-      <div className="risk-panel">
+      <div className="risk-info">
         <span>PORTFOLIO EXPOSURE</span>
 
         <strong>
@@ -578,25 +748,45 @@ function RiskVisual() {
           <small>OUTSTANDING</small>
         </strong>
 
-        <div className="risk-bars">
+        <div className="aging">
           <div>
             <span>0–30</span>
-            <i style={{ width: "82%" }} />
+
+            <i
+              style={{
+                width: "82%",
+              }}
+            />
           </div>
 
           <div>
             <span>31–60</span>
-            <i style={{ width: "54%" }} />
+
+            <i
+              style={{
+                width: "54%",
+              }}
+            />
           </div>
 
           <div>
             <span>61–90</span>
-            <i style={{ width: "29%" }} />
+
+            <i
+              style={{
+                width: "29%",
+              }}
+            />
           </div>
 
           <div>
             <span>90+</span>
-            <i style={{ width: "12%" }} />
+
+            <i
+              style={{
+                width: "12%",
+              }}
+            />
           </div>
         </div>
       </div>
@@ -604,24 +794,35 @@ function RiskVisual() {
   );
 }
 
-function ModuleVisual({ moduleIndex }: { moduleIndex: number }) {
-  switch (moduleIndex) {
-    case 0:
-      return <SalesVisual />;
-    case 1:
-      return <WarehouseVisual />;
-    case 2:
-      return <ProcurementVisual />;
-    default:
-      return <RiskVisual />;
+function ModuleVisual({ index }: { index: number }) {
+  if (index === 0) {
+    return <SalesVisual />;
   }
+
+  if (index === 1) {
+    return <InventoryVisual />;
+  }
+
+  if (index === 2) {
+    return <ProcurementVisual />;
+  }
+
+  return <RiskVisual />;
 }
+
+/* ============================================================
+   MAIN
+============================================================ */
 
 export default function Home() {
   const scrollProgress = useScrollProgress();
+
   const pointer = usePointer();
 
+  const visible = useReveal();
+
   const [activeModule, setActiveModule] = useState(0);
+
   const [menuOpen, setMenuOpen] = useState(false);
 
   const moduleRefs = useRef<(HTMLElement | null)[]>([]);
@@ -644,25 +845,25 @@ export default function Home() {
       );
 
       observer.observe(element);
+
       observers.push(observer);
     });
 
-    return () => {
-      observers.forEach((observer) => observer.disconnect());
-    };
+    return () => observers.forEach((observer) => observer.disconnect());
   }, []);
 
   const active = modules[activeModule];
 
-  const heroTransform = useMemo(() => {
-    const local = clamp(scrollProgress * 4);
+  const heroState = useMemo(() => {
+    const progress = clamp(scrollProgress * 5);
 
     return {
-      opacity: 1 - local * 0.75,
+      opacity: 1 - progress * 0.82,
+
       transform: `
-        translateY(${local * -70}px)
-        scale(${1 - local * 0.035})
-      `,
+          translateY(${progress * -80}px)
+          scale(${1 - progress * 0.04})
+        `,
     };
   }, [scrollProgress]);
 
@@ -670,52 +871,51 @@ export default function Home() {
     <main className="page">
       <Noise />
 
-      <div className="ambient ambient-one" />
-      <div className="ambient ambient-two" />
+      <div className="page-gradient" />
+      <div className="ambient ambient-a" />
+      <div className="ambient ambient-b" />
 
-      {/* HEADER */}
+      {/* ======================================================
+          NAVIGATION
+      ====================================================== */}
 
-      <header className="header">
-        <div className="header-inner">
-          <Link href="/" className="logo">
-            <span className="logo-mark">
-              <i />
-              <i />
-              <i />
-            </span>
+      <header className="site-header">
+        <div className="site-header-inner">
+          <Link href="/" className="site-logo">
+            <LogoMark />
 
             <span>LedgerCore</span>
           </Link>
 
-          <div className="header-center">
-            <span className="status-dot" />
+          <div className="header-status">
+            <span />
+
             <span>SYSTEM OPERATIONAL</span>
-            <em>v2.4.0</em>
           </div>
 
-          <nav className={menuOpen ? "header-nav open" : "header-nav"}>
+          <nav className={`site-nav ${menuOpen ? "open" : ""}`}>
             <Link href="#systems">Systems</Link>
+
             <Link href="#modules">Modules</Link>
+
             <Link href="#architecture">Architecture</Link>
-
-            <Link href="/login" className="sign-in">
+            {/* 
+            <Link href="/login" className="nav-signin">
               Sign In
-            </Link>
-
-            {/* <Link href="/dashboard-redirect" className="dashboard-link">
-              Launch Dashboard
-              <span>↗</span>
             </Link> */}
-            <Link href="#" className="dashboard-link">
-              Coming soon
-              <span>↗</span>
+
+            <Link href="#" className="nav-cta">
+              <span>Coming soon</span>
+
+              <span>→</span>
             </Link>
           </nav>
 
           <button
-            className="menu-button"
+            className={`menu-button ${menuOpen ? "open" : ""}`}
             onClick={() => setMenuOpen((value) => !value)}
-            aria-label="Toggle menu"
+            aria-label="Toggle navigation"
+            aria-expanded={menuOpen}
           >
             <span />
             <span />
@@ -723,142 +923,194 @@ export default function Home() {
         </div>
       </header>
 
-      {/* HERO */}
+      {/* ======================================================
+          HERO
+      ====================================================== */}
 
       <section className="hero">
         <div className="hero-grid" />
 
-        <div className="hero-content" style={heroTransform}>
-          <div className="eyebrow">
+        <div className="hero-content" style={heroState}>
+          <div className="hero-eyebrow">
             <span>ERP / OPERATING SYSTEM</span>
+
             <i />
-            <span>FOR MODERN ENTERPRISE</span>
+
+            <span>FOR MODERN BUSINESS</span>
           </div>
 
           <h1>
-            Business,
+            Business
             <br />
             <span>in motion.</span>
           </h1>
 
-          <p className="hero-copy">
-            One operational layer for sales, inventory, procurement and
-            financial control. Built to make every movement of your business
-            visible.
+          <p className="hero-description">
+            One operating layer for sales, inventory, procurement, and financial
+            control.
           </p>
 
-          <div className="hero-meta">
-            <div>
-              <span>01</span>
-              <strong>CONTROL</strong>
-            </div>
+          <div className="hero-actions">
+            {/* <Link href="/login" className="hero-primary">
+              Sign in
+              <span>→</span>
+            </Link> */}
+            <Link href="/#" className="hero-primary">
+              Coming soon
+              <span>→</span>
+            </Link>
 
-            <div>
-              <span>02</span>
-              <strong>CONNECT</strong>
-            </div>
-
-            <div>
-              <span>03</span>
-              <strong>COMPOUND</strong>
-            </div>
+            <a href="#systems" className="hero-secondary">
+              Explore the system
+              <span>↓</span>
+            </a>
           </div>
         </div>
 
-        <div className="hero-screen">
-          <DashboardScreen activeModule={activeModule} pointer={pointer} />
+        <div
+          className={`hero-screen ${visible.has("hero-screen") ? "visible" : ""}`}
+          data-reveal="hero-screen"
+        >
+          <HeroDashboard activeModule={activeModule} pointer={pointer} />
         </div>
 
-        <div className="hero-bottom">
-          <span>SCROLL TO EXPLORE</span>
-          <div className="scroll-indicator">
+        <div className="hero-meta">
+          <span>ERP_CORE / 2026</span>
+
+          <div className="hero-scroll">
+            <span>SCROLL TO EXPLORE</span>
+
             <i />
           </div>
-          <span>01 / 05</span>
+
+          <span>01 — 04</span>
         </div>
       </section>
 
-      {/* MANIFESTO */}
+      {/* ======================================================
+          INTRO
+      ====================================================== */}
 
-      <section className="manifesto" id="systems">
-        <div className="manifesto-grid">
-          <div className="section-number">01</div>
+      <section className="intro-section" id="systems">
+        <div className="section-container">
+          <div className="section-kicker">
+            <span>01</span>
 
-          <div className="manifesto-title">
             <span>THE OPERATING LAYER</span>
-
-            <h2>
-              Every transaction
-              <br />
-              leaves a trace.
-            </h2>
           </div>
 
-          <div className="manifesto-copy">
-            <p>
-              Modern businesses generate thousands of operational events every
-              day.
-            </p>
+          <div className="intro-layout">
+            <div
+              data-reveal="intro-title"
+              className={`intro-title ${
+                visible.has("intro-title") ? "visible" : ""
+              }`}
+            >
+              <h2>
+                Every part
+                <br />
+                <span>connected.</span>
+              </h2>
+            </div>
 
-            <p>
-              ERP_CORE turns those events into one continuous system of record —
-              connecting commercial activity directly to inventory and financial
-              outcomes.
-            </p>
+            <div
+              data-reveal="intro-copy"
+              className={`intro-copy ${
+                visible.has("intro-copy") ? "visible" : ""
+              }`}
+            >
+              <p>
+                Businesses move through thousands of small events every day.
+              </p>
 
-            <div className="telemetry">
-              <DataPulse />
+              <p>
+                A sale changes inventory. Inventory changes purchasing.
+                Purchasing changes cash flow.
+              </p>
 
-              <div>
-                <strong>
-                  <Counter value={9998} />%
-                </strong>
+              <p>LedgerCore keeps those movements connected.</p>
 
-                <span>DATA INTEGRITY</span>
+              <div className="integrity">
+                <div className="integrity-line">
+                  <i />
+                  <i />
+                  <i />
+                  <i />
+                </div>
+
+                <div>
+                  <strong>
+                    <Counter value={99.98} />%
+                  </strong>
+
+                  <span>DATA INTEGRITY</span>
+                </div>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* SYSTEM MAP */}
+      {/* ======================================================
+          ARCHITECTURE
+      ====================================================== */}
 
-      <section className="system-section" id="architecture">
-        <div className="system-header">
-          <div>
-            <span className="eyebrow-small">02 // SYSTEM ARCHITECTURE</span>
+      <section className="architecture" id="architecture">
+        <div className="section-container">
+          <div
+            className={`architecture-header ${
+              visible.has("architecture-header") ? "visible" : ""
+            }`}
+            data-reveal="architecture-header"
+          >
+            <div>
+              <div className="section-kicker">
+                <span>02</span>
 
-            <h2>
-              Four systems.
+                <span>SYSTEM ARCHITECTURE</span>
+              </div>
+
+              <h2>
+                Four systems.
+                <br />
+                <span>One source of truth.</span>
+              </h2>
+            </div>
+
+            <p>
+              Select a subsystem.
               <br />
-              One source of truth.
-            </h2>
+              The operating layer reorganizes around it.
+            </p>
           </div>
 
-          <div className="system-description">
-            Select a subsystem.
-            <br />
-            The operating layer reorganizes around it.
+          <div
+            className={`architecture-map-wrap ${
+              visible.has("system-map") ? "visible" : ""
+            }`}
+            data-reveal="system-map"
+          >
+            <SystemMap
+              activeModule={activeModule}
+              setActiveModule={setActiveModule}
+            />
           </div>
-        </div>
 
-        <OrbitSystem
-          activeModule={activeModule}
-          setActiveModule={setActiveModule}
-        />
+          <div className="architecture-footer">
+            <span>ACTIVE SYSTEM</span>
 
-        <div className="system-footer">
-          <span>ACTIVE SYSTEM</span>
+            <strong>
+              {active.code} — {active.title}
+            </strong>
 
-          <strong>
-            {active.code} — {active.title}
-          </strong>
-
-          <span>CONNECTED / 04</span>
+            <span>CONNECTED / 04</span>
+          </div>
         </div>
       </section>
 
-      {/* MODULES */}
+      {/* ======================================================
+          MODULES
+      ====================================================== */}
 
       <section className="modules" id="modules">
         {modules.map((module, index) => {
@@ -870,198 +1122,217 @@ export default function Home() {
               ref={(element) => {
                 moduleRefs.current[index] = element;
               }}
-              className={`module-section ${isActive ? "is-active" : ""}`}
+              className={`module-section ${isActive ? "active" : ""}`}
             >
-              <div className="module-top">
-                <span>{module.code}</span>
+              <div className="module-inner">
+                <div className="module-header">
+                  <span>{module.code} / SYSTEM</span>
 
-                <span>SYSTEM {String(index + 1).padStart(2, "0")} / 04</span>
-              </div>
+                  <span>{String(index + 1).padStart(2, "0")} / 04</span>
+                </div>
 
-              <div className="module-layout">
-                <div className="module-copy">
-                  <div className="module-label">
-                    <i />
-                    {module.status}
+                <div className="module-layout">
+                  <div className="module-copy">
+                    <div className="module-status">
+                      <i />
+
+                      {module.status}
+                    </div>
+
+                    <h2>{module.title}</h2>
+
+                    <p>{module.summary}</p>
+
+                    <div className="module-number">
+                      <span>{module.metricLabel}</span>
+
+                      <strong>{module.metric}</strong>
+                    </div>
+
+                    <div className="module-features">
+                      {module.bullets.map((bullet, bulletIndex) => (
+                        <div key={bullet}>
+                          <span>
+                            {String(bulletIndex + 1).padStart(2, "0")}
+                          </span>
+
+                          <p>{bullet}</p>
+                        </div>
+                      ))}
+                    </div>
                   </div>
 
-                  <h2>{module.title}</h2>
-
-                  <p>{module.summary}</p>
-
-                  <div className="module-metric">
-                    <span>{module.metricLabel}</span>
-                    <strong>{module.metric}</strong>
-                  </div>
-
-                  <div className="module-bullets">
-                    {module.bullets.map((bullet, bulletIndex) => (
-                      <div key={bullet}>
-                        <span>{String(bulletIndex + 1).padStart(2, "0")}</span>
-                        <p>{bullet}</p>
-                      </div>
-                    ))}
+                  <div className="module-visual">
+                    <ModuleVisual
+                      key={`${module.id}-${isActive}`}
+                      index={index}
+                    />
                   </div>
                 </div>
 
-                <div className="module-stage">
-                  <ModuleVisual moduleIndex={index} />
+                <div className="module-footer">
+                  <span>LEDGERCORE / {module.id}</span>
 
-                  <div className="stage-coordinate">
-                    X: {String(21 + index * 18).padStart(3, "0")}
-                    &nbsp;&nbsp; Y: {String(74 - index * 7).padStart(3, "0")}
+                  <div className="module-progress">
+                    <i
+                      style={{
+                        width: `${((index + 1) / modules.length) * 100}%`,
+                      }}
+                    />
                   </div>
 
-                  <div className="stage-status">
-                    <span />
-                    PROCESSING
-                  </div>
+                  <span>
+                    {String(index + 1).padStart(2, "0")} —{" "}
+                    {String(modules.length).padStart(2, "0")}
+                  </span>
                 </div>
-              </div>
-
-              <div className="module-bottom">
-                <span>ERP_CORE / {module.code}</span>
-
-                <div className="module-progress">
-                  <i
-                    style={{
-                      width: `${((index + 1) / modules.length) * 100}%`,
-                    }}
-                  />
-                </div>
-
-                <span>
-                  {String(index + 1).padStart(2, "0")} —{" "}
-                  {String(modules.length).padStart(2, "0")}
-                </span>
               </div>
             </section>
           );
         })}
       </section>
 
-      {/* CONTROL STRIP */}
+      {/* ======================================================
+          LIVE CONTROL
+      ====================================================== */}
 
-      <section className="control-strip">
-        <div className="control-strip-inner">
-          <div className="control-intro">
-            <span>03 // CONTINUOUS CONTROL</span>
-            <h2>
-              The numbers
-              <br />
-              move with you.
-            </h2>
-          </div>
+      <section className="control-section">
+        <div className="section-container">
+          <div className="control-layout">
+            <div
+              className={`control-title ${
+                visible.has("control-title") ? "visible" : ""
+              }`}
+              data-reveal="control-title"
+            >
+              <div className="section-kicker">
+                <span>03</span>
 
-          <div className="control-stream">
-            <div className="stream-row">
-              <span>SALES</span>
-              <i />
-              <strong>142,850</strong>
-              <em>+18.4%</em>
+                <span>CONTINUOUS CONTROL</span>
+              </div>
+
+              <h2>
+                The numbers
+                <br />
+                <span>move with you.</span>
+              </h2>
             </div>
 
-            <div className="stream-row">
-              <span>INVENTORY</span>
-              <i />
-              <strong>1,240 UNITS</strong>
-              <em>+6.8%</em>
-            </div>
+            <div
+              className={`control-stream ${
+                visible.has("control-stream") ? "visible" : ""
+              }`}
+              data-reveal="control-stream"
+            >
+              {[
+                ["SALES", "142,850", "+18.4%"],
+                ["INVENTORY", "1,240 UNITS", "+6.8%"],
+                ["PROCUREMENT", "38,400", "12 OPEN"],
+                ["AR RISK", "12,150", "3 OVERDUE"],
+              ].map((row) => (
+                <div key={row[0]} className="stream-row">
+                  <span>{row[0]}</span>
 
-            <div className="stream-row">
-              <span>PROCUREMENT</span>
-              <i />
-              <strong>38,400</strong>
-              <em>12 OPEN</em>
-            </div>
+                  <i />
 
-            <div className="stream-row">
-              <span>AR RISK</span>
-              <i />
-              <strong>12,150</strong>
-              <em>3 OVERDUE</em>
+                  <strong>{row[1]}</strong>
+
+                  <em>{row[2]}</em>
+                </div>
+              ))}
             </div>
           </div>
         </div>
       </section>
 
-      {/* FINAL */}
+      {/* ======================================================
+          FINAL CTA
+      ====================================================== */}
 
-      <section className="final">
+      <section className="final-section">
         <div className="final-grid" />
+        <div className="final-glow" />
 
-        <div className="final-content">
-          <span className="eyebrow-small">
-            04 // DEPLOY YOUR OPERATING LAYER
-          </span>
+        <div className="section-container">
+          <div className="final-content">
+            <div className="section-kicker">
+              <span>04</span>
 
-          <h2>
-            Make the
-            <br />
-            <span>business visible.</span>
-          </h2>
+              <span>DEPLOY YOUR OPERATING LAYER</span>
+            </div>
 
-          <p>
-            Replace disconnected workflows with one system that understands how
-            every part of your business moves.
-          </p>
+            <h2>
+              Make the
+              <br />
+              <span>business visible.</span>
+            </h2>
 
-          {/* <Link href="/dashboard-redirect" className="final-button">
-            <span>Enter ERP_CORE</span>
-            <strong>↗</strong>
-          </Link> */}
-          <Link href="#" className="final-button">
-            <span>Coming Soon</span>
-            <strong>↗</strong>
-          </Link>
-        </div>
+            <p>
+              Replace disconnected workflows with one system that understands
+              how every part of your business moves.
+            </p>
 
-        <div className="final-orbit">
-          <div />
-          <div />
-          <div />
-          <span>ERP</span>
+            <Link href="/login" className="final-button">
+              <span>Enter LedgerCore</span>
+
+              <strong>→</strong>
+            </Link>
+          </div>
+
+          <div className="final-orbit">
+            <div />
+            <div />
+            <div />
+
+            <span>ERP</span>
+          </div>
         </div>
       </section>
 
-      {/* FOOTER */}
+      {/* ======================================================
+          FOOTER
+      ====================================================== */}
 
-      <footer className="footer">
-        <div className="footer-top">
-          <div className="footer-logo">
-            <span className="logo-mark">
-              <i />
-              <i />
-              <i />
-            </span>
-            LedgerCore
+      <footer className="site-footer">
+        <div className="section-container">
+          <div className="footer-top">
+            <div className="footer-brand">
+              <LogoMark />
+
+              <span>LedgerCore</span>
+            </div>
+
+            <span>OPERATIONAL INTELLIGENCE / 2026</span>
+
+            <span>ALL SYSTEMS NOMINAL</span>
           </div>
 
-          <span>OPERATIONAL INTELLIGENCE / 2026</span>
+          <div className="footer-bottom">
+            <span>© 2026 ERP_CORE</span>
 
-          <span>ALL SYSTEMS NOMINAL</span>
-        </div>
+            {/* <div>
+              <Link href="/login">SIGN IN</Link>
 
-        <div className="footer-bottom">
-          <span>© 2026 ERP_CORE</span>
-
-          <div>
-            <Link href="/login">SIGN IN</Link>
-            <Link href="/dashboard-redirect">DASHBOARD ↗</Link>
+              <Link href="/dashboard-redirect">DASHBOARD →</Link>
+            </div> */}
           </div>
         </div>
       </footer>
 
+      {/* ======================================================
+          STYLES
+      ====================================================== */}
+
       <style jsx global>{`
         :root {
-          --bg: #050505;
-          --panel: #0a0a0a;
-          --panel-2: #0f0f0f;
-          --line: rgba(255, 255, 255, 0.1);
-          --line-soft: rgba(255, 255, 255, 0.055);
-          --text: #f5f5f5;
-          --muted: #858585;
-          --dim: #454545;
+          --background: #000000;
+          --surface: #0a0a0a;
+          --surface-light: #111111;
+          --text: #f5f5f7;
+          --muted: #86868b;
+          --dim: #48484a;
+          --line: rgba(255, 255, 255, 0.09);
+          --line-soft: rgba(255, 255, 255, 0.05);
           --accent: #d9ff43;
         }
 
@@ -1071,21 +1342,23 @@ export default function Home() {
 
         html {
           scroll-behavior: smooth;
-          background: var(--bg);
+          background: var(--background);
         }
 
         body {
           margin: 0;
-          background: var(--bg);
+          background: var(--background);
           color: var(--text);
           font-family:
             Inter,
-            ui-sans-serif,
-            system-ui,
             -apple-system,
             BlinkMacSystemFont,
-            "Segoe UI",
+            "SF Pro Display",
+            "SF Pro Text",
+            system-ui,
             sans-serif;
+          -webkit-font-smoothing: antialiased;
+          text-rendering: optimizeLegibility;
           overflow-x: hidden;
         }
 
@@ -1100,188 +1373,248 @@ export default function Home() {
 
         .page {
           position: relative;
+          min-height: 100vh;
+          overflow: hidden;
           background:
             radial-gradient(
-              circle at 50% 0%,
-              rgba(255, 255, 255, 0.045),
-              transparent 28%
+              circle at 50% -10%,
+              rgba(255, 255, 255, 0.035),
+              transparent 30%
             ),
-            var(--bg);
-          overflow: hidden;
+            #000;
+        }
+
+        .page-gradient {
+          position: fixed;
+          inset: 0;
+          pointer-events: none;
+          z-index: 0;
+          opacity: 0.55;
+          background: linear-gradient(
+            180deg,
+            transparent 0%,
+            rgba(255, 255, 255, 0.008) 42%,
+            transparent 100%
+          );
         }
 
         .noise {
           position: fixed;
           inset: 0;
-          z-index: 100;
+          z-index: 1000;
           pointer-events: none;
-          opacity: 0.035;
-          background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.65'/%3E%3C/svg%3E");
+          opacity: 0.025;
+          background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.65'/%3E%3C/svg%3E");
           mix-blend-mode: screen;
         }
 
         .ambient {
           position: absolute;
-          pointer-events: none;
-          border-radius: 999px;
-          filter: blur(100px);
-          opacity: 0.12;
-        }
-
-        .ambient-one {
-          width: 400px;
-          height: 400px;
-          top: 15%;
-          left: -220px;
-          background: white;
-        }
-
-        .ambient-two {
           width: 500px;
           height: 500px;
-          top: 45%;
-          right: -300px;
-          background: var(--accent);
-          opacity: 0.035;
+          border-radius: 50%;
+          pointer-events: none;
+          filter: blur(120px);
         }
 
-        /* HEADER */
-
-        .header {
-          position: fixed;
-          z-index: 90;
-          top: 16px;
-          left: 50%;
-          width: min(1180px, calc(100% - 32px));
-          transform: translateX(-50%);
+        .ambient-a {
+          left: -300px;
+          top: 25%;
+          background: rgba(255, 255, 255, 0.08);
         }
 
-        .header-inner {
-          height: 58px;
-          display: flex;
-          align-items: center;
-          padding: 0 8px 0 16px;
-          border: 1px solid rgba(255, 255, 255, 0.12);
-          background: rgba(7, 7, 7, 0.72);
-          backdrop-filter: blur(24px);
-          -webkit-backdrop-filter: blur(24px);
-          border-radius: 999px;
-          box-shadow:
-            0 10px 50px rgba(0, 0, 0, 0.35),
-            inset 0 1px rgba(255, 255, 255, 0.04);
+        .ambient-b {
+          right: -350px;
+          top: 48%;
+          background: rgba(217, 255, 67, 0.025);
         }
 
-        .logo {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          font-family: "SFMono-Regular", Consolas, monospace;
-          font-size: 12px;
-          letter-spacing: -0.02em;
-          white-space: nowrap;
+        /* ======================================================
+           REVEALS
+        ====================================================== */
+
+        [data-reveal] {
+          opacity: 0;
+          transform: translateY(45px);
+          transition:
+            opacity 1s cubic-bezier(0.22, 1, 0.36, 1),
+            transform 1s cubic-bezier(0.22, 1, 0.36, 1);
         }
 
-        .logo > span:last-child span {
-          color: #686868;
+        [data-reveal].visible {
+          opacity: 1;
+          transform: translateY(0);
         }
+
+        /* Hero screen has its own reveal transform so the dashboard's
+           pointer-controlled transform remains independent. */
+        .hero-screen[data-reveal] {
+          transform: translateY(40px) scale(0.985);
+          transition:
+            opacity 1.1s cubic-bezier(0.22, 1, 0.36, 1),
+            transform 1.1s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+
+        .hero-screen[data-reveal].visible {
+          transform: translateY(0) scale(1);
+        }
+
+        /* Prevent reveal-hidden sections from blocking their contents. */
+        .architecture-map-wrap[data-reveal] {
+          will-change: opacity, transform;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          [data-reveal],
+          .hero-screen[data-reveal] {
+            opacity: 1 !important;
+            transform: none !important;
+          }
+        }
+
+        /* ======================================================
+           LOGO
+        ====================================================== */
 
         .logo-mark {
           position: relative;
-          width: 23px;
-          height: 23px;
+          width: 21px;
+          height: 21px;
           display: flex;
+          align-items: flex-end;
           gap: 3px;
-          align-items: end;
+          flex-shrink: 0;
         }
 
         .logo-mark i {
           display: block;
-          width: 5px;
-          background: white;
+          width: 4px;
           border-radius: 2px;
+          background: #f5f5f7;
         }
 
         .logo-mark i:nth-child(1) {
           height: 8px;
-          opacity: 0.45;
+          opacity: 0.35;
         }
 
         .logo-mark i:nth-child(2) {
-          height: 15px;
-          opacity: 0.7;
+          height: 14px;
+          opacity: 0.65;
         }
 
         .logo-mark i:nth-child(3) {
-          height: 22px;
+          height: 20px;
         }
 
-        .header-center {
+        /* ======================================================
+           HEADER
+        ====================================================== */
+
+        .site-header {
+          position: fixed;
+          top: 16px;
+          left: 50%;
+          z-index: 100;
+          width: min(1180px, calc(100% - 32px));
+          transform: translateX(-50%);
+        }
+
+        .site-header-inner {
+          position: relative;
+          height: 58px;
+          display: flex;
+          align-items: center;
+          padding: 0 8px 0 16px;
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          border-radius: 999px;
+          background: rgba(12, 12, 12, 0.65);
+          backdrop-filter: blur(28px);
+          -webkit-backdrop-filter: blur(28px);
+          box-shadow:
+            0 16px 50px rgba(0, 0, 0, 0.35),
+            inset 0 1px rgba(255, 255, 255, 0.04);
+        }
+
+        .site-logo {
+          display: flex;
+          align-items: center;
+          gap: 9px;
+          color: #eee;
+          font-family: "SFMono-Regular", Consolas, monospace;
+          font-size: 11px;
+          letter-spacing: -0.02em;
+          white-space: nowrap;
+        }
+
+        .header-status {
           position: absolute;
           left: 50%;
           transform: translateX(-50%);
           display: flex;
           align-items: center;
           gap: 7px;
+          color: #666;
           font-family: "SFMono-Regular", Consolas, monospace;
-          font-size: 8px;
-          color: #777;
+          font-size: 7px;
           letter-spacing: 0.12em;
           white-space: nowrap;
         }
 
-        .header-center em {
-          padding-left: 7px;
-          border-left: 1px solid #303030;
-          color: #4e4e4e;
-          font-style: normal;
-        }
-
-        .status-dot {
+        .header-status span:first-child {
           width: 5px;
           height: 5px;
-          background: var(--accent);
           border-radius: 50%;
-          box-shadow: 0 0 10px rgba(217, 255, 67, 0.6);
-          animation: blink 2s infinite;
+          background: var(--accent);
+          box-shadow: 0 0 10px rgba(217, 255, 67, 0.7);
+          animation: statusPulse 2.5s ease-in-out infinite;
         }
 
-        .header-nav {
+        .site-nav {
           display: flex;
           align-items: center;
-          gap: 20px;
+          gap: 22px;
           margin-left: auto;
           font-family: "SFMono-Regular", Consolas, monospace;
-          font-size: 9px;
-          color: #888;
+          font-size: 8px;
+          color: #777;
         }
 
-        .header-nav a {
+        .site-nav a {
           transition:
             color 0.25s ease,
-            opacity 0.25s ease;
+            transform 0.25s ease;
         }
 
-        .header-nav a:hover {
-          color: white;
+        .site-nav a:hover {
+          color: #fff;
         }
 
-        .sign-in {
-          margin-left: 4px;
+        .nav-signin {
+          margin-left: 5px;
           color: #aaa;
         }
 
-        .dashboard-link {
-          display: flex;
+        .nav-cta {
+          display: inline-flex;
           align-items: center;
-          gap: 10px;
-          padding: 10px 13px;
+          gap: 9px;
+          padding: 10px 14px;
           border-radius: 999px;
-          background: white;
-          color: black !important;
+          background: #f5f5f7;
+          color: #050505 !important;
           font-weight: 600;
+          transition:
+            transform 0.25s ease,
+            background-color 0.25s ease;
         }
 
-        .dashboard-link span {
+        .nav-cta:hover {
+          transform: translateY(-1px);
+          background: #fff;
+        }
+
+        .nav-cta span:last-child {
           font-size: 13px;
         }
 
@@ -1289,33 +1622,35 @@ export default function Home() {
           display: none;
         }
 
-        /* HERO */
+        /* ======================================================
+           HERO
+        ====================================================== */
 
         .hero {
           position: relative;
-          min-height: 115vh;
-          padding: 150px 24px 80px;
+          z-index: 1;
+          min-height: 125vh;
+          padding: 160px 24px 70px;
           display: flex;
           flex-direction: column;
           justify-content: space-between;
           isolation: isolate;
         }
 
-        .hero-grid,
-        .final-grid {
+        .hero-grid {
           position: absolute;
           inset: 0;
           pointer-events: none;
-          opacity: 0.35;
+          opacity: 0.22;
           background-image:
-            linear-gradient(rgba(255, 255, 255, 0.045) 1px, transparent 1px),
+            linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
             linear-gradient(
               90deg,
-              rgba(255, 255, 255, 0.045) 1px,
+              rgba(255, 255, 255, 0.04) 1px,
               transparent 1px
             );
-          background-size: 80px 80px;
-          mask-image: linear-gradient(to bottom, black, transparent 85%);
+          background-size: 90px 90px;
+          mask-image: linear-gradient(to bottom, black 0%, transparent 78%);
         }
 
         .hero-content {
@@ -1323,254 +1658,344 @@ export default function Home() {
           z-index: 3;
           width: min(1120px, 100%);
           margin: 0 auto;
+          will-change: opacity, transform;
         }
 
-        .eyebrow,
-        .eyebrow-small {
+        .hero-eyebrow,
+        .section-kicker {
           display: flex;
           align-items: center;
           gap: 10px;
+          color: #666;
           font-family: "SFMono-Regular", Consolas, monospace;
-          font-size: 9px;
+          font-size: 8px;
           letter-spacing: 0.13em;
-          color: #747474;
         }
 
-        .eyebrow i {
-          width: 24px;
+        .hero-eyebrow i {
+          width: 26px;
           height: 1px;
-          background: #454545;
+          background: #343434;
         }
 
         .hero h1 {
-          max-width: 1050px;
-          margin: 26px 0 0;
-          font-size: clamp(72px, 11.5vw, 170px);
-          line-height: 0.82;
+          max-width: 1100px;
+          margin: 30px 0 0;
+          font-size: clamp(76px, 11.6vw, 170px);
+          line-height: 0.83;
           letter-spacing: -0.085em;
           font-weight: 500;
         }
 
         .hero h1 span {
-          color: #6b6b6b;
+          color: #666;
         }
 
-        .hero-copy {
-          width: 390px;
-          margin: 32px 0 0 6px;
-          color: #818181;
+        .hero-description {
+          max-width: 410px;
+          margin: 38px 0 0 5px;
+          color: #858585;
           font-size: 14px;
-          line-height: 1.7;
+          line-height: 1.75;
         }
 
-        .hero-meta {
+        .hero-actions {
           display: flex;
-          gap: 38px;
-          margin-top: 35px;
-          margin-left: 6px;
-        }
-
-        .hero-meta div {
-          display: flex;
-          gap: 9px;
           align-items: center;
+          gap: 26px;
+          margin: 32px 0 0 5px;
+        }
+
+        .hero-primary {
+          display: inline-flex;
+          align-items: center;
+          gap: 17px;
+          padding: 13px 18px;
+          border-radius: 999px;
+          background: #f5f5f7;
+          color: #050505;
+          font-size: 10px;
+          font-weight: 600;
+          transition:
+            transform 0.3s ease,
+            background-color 0.3s ease;
+        }
+
+        .hero-primary:hover {
+          transform: translateY(-2px);
+          background: #fff;
+        }
+
+        .hero-primary span {
+          font-size: 15px;
+        }
+
+        .hero-secondary {
+          display: inline-flex;
+          align-items: center;
+          gap: 9px;
+          color: #666;
           font-family: "SFMono-Regular", Consolas, monospace;
           font-size: 8px;
+          transition: color 0.25s ease;
         }
 
-        .hero-meta span {
-          color: #484848;
+        .hero-secondary:hover {
+          color: #fff;
         }
 
-        .hero-meta strong {
-          color: #9a9a9a;
-          font-weight: 500;
+        .hero-secondary span {
+          font-size: 13px;
         }
 
         .hero-screen {
           position: relative;
           z-index: 4;
-          width: min(1020px, 92%);
-          margin: 70px auto 0;
+          width: min(1060px, 94%);
+          margin: 90px auto 0;
         }
 
-        .screen-wrap {
+        .hero-dashboard-wrap {
           position: relative;
-          transition: transform 0.2s ease-out;
           transform-style: preserve-3d;
+          transition: transform 0.25s ease-out;
+          will-change: transform;
         }
 
-        .screen-glow {
+        .hero-dashboard-shadow {
           position: absolute;
-          width: 70%;
-          height: 55%;
           left: 15%;
           bottom: -15%;
+          width: 70%;
+          height: 60%;
+          border-radius: 50%;
           background: rgba(255, 255, 255, 0.12);
-          filter: blur(80px);
+          filter: blur(100px);
           opacity: 0.3;
         }
 
-        .dashboard-screen {
+        .hero-dashboard {
           position: relative;
-          border: 1px solid rgba(255, 255, 255, 0.13);
-          border-radius: 18px;
-          overflow: hidden;
+          border: 1px solid rgba(255, 255, 255, 0.12);
+          border-radius: 20px;
           background: #080808;
+          overflow: hidden;
           box-shadow:
-            0 60px 120px rgba(0, 0, 0, 0.7),
+            0 60px 140px rgba(0, 0, 0, 0.78),
             0 0 0 1px rgba(255, 255, 255, 0.025);
         }
 
-        .screen-top {
-          height: 44px;
+        .window-bar {
+          height: 48px;
           display: grid;
           grid-template-columns: 1fr 1fr 1fr;
           align-items: center;
           padding: 0 16px;
           border-bottom: 1px solid var(--line);
           font-family: "SFMono-Regular", Consolas, monospace;
-          font-size: 8px;
+          font-size: 7px;
         }
 
-        .screen-brand {
+        .window-controls {
           display: flex;
-          align-items: center;
-          gap: 8px;
-          color: #c7c7c7;
+          gap: 5px;
         }
 
-        .brand-square {
+        .window-controls span {
           width: 6px;
           height: 6px;
-          background: var(--accent);
-          box-shadow: 0 0 12px rgba(217, 255, 67, 0.5);
+          border-radius: 50%;
+          background: #363636;
         }
 
-        .screen-path {
+        .window-url {
           text-align: center;
-          color: #4d4d4d;
+          color: #454545;
         }
 
-        .screen-live {
+        .window-status {
           justify-self: end;
           display: flex;
-          gap: 6px;
           align-items: center;
+          gap: 6px;
           color: #666;
         }
 
-        .screen-live i {
+        .window-status span {
           width: 4px;
           height: 4px;
-          background: var(--accent);
           border-radius: 50%;
+          background: var(--accent);
+          box-shadow: 0 0 9px rgba(217, 255, 67, 0.6);
         }
 
-        .screen-body {
-          min-height: 390px;
+        .dashboard-content {
+          min-height: 460px;
           display: grid;
-          grid-template-columns: 150px 1fr;
+          grid-template-columns: 155px 1fr;
         }
 
-        .screen-sidebar {
-          padding: 18px 0;
+        .dashboard-sidebar {
+          display: flex;
+          flex-direction: column;
+          padding: 20px 0;
           border-right: 1px solid var(--line);
         }
 
-        .side-module {
+        .dashboard-brand {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 0 19px 22px;
+          color: #aaa;
+          font-family: "SFMono-Regular", Consolas, monospace;
+          font-size: 7px;
+        }
+
+        .dashboard-brand .logo-mark {
+          transform: scale(0.62);
+          transform-origin: left center;
+          width: 16px;
+        }
+
+        .dashboard-nav-item {
           display: flex;
           flex-direction: column;
           gap: 4px;
-          padding: 12px 18px;
-          opacity: 0.35;
+          padding: 13px 18px;
           border-left: 1px solid transparent;
-          transition: 0.3s ease;
+          opacity: 0.32;
+          transition:
+            opacity 0.35s ease,
+            background-color 0.35s ease,
+            border-color 0.35s ease;
         }
 
-        .side-module.selected {
+        .dashboard-nav-item.active {
           opacity: 1;
           border-left-color: var(--accent);
-          background: rgba(255, 255, 255, 0.025);
+          background: rgba(255, 255, 255, 0.024);
         }
 
-        .side-module span {
+        .dashboard-nav-item span {
+          color: #505050;
           font-family: "SFMono-Regular", Consolas, monospace;
-          font-size: 7px;
-          color: #555;
+          font-size: 6px;
         }
 
-        .side-module strong {
+        .dashboard-nav-item strong {
+          color: #aaa;
           font-size: 9px;
           font-weight: 500;
         }
 
-        .screen-main {
-          padding: 22px 26px;
+        .dashboard-sidebar-bottom {
+          margin-top: auto;
+          padding: 18px;
+          color: #414141;
+          font-family: "SFMono-Regular", Consolas, monospace;
+          font-size: 6px;
         }
 
-        .screen-heading {
+        .dashboard-sidebar-bottom span {
+          display: inline-block;
+          width: 4px;
+          height: 4px;
+          margin-right: 5px;
+          border-radius: 50%;
+          background: var(--accent);
+        }
+
+        .dashboard-sidebar-bottom strong {
+          display: block;
+          margin-top: 7px;
+          color: #777;
+          font-size: 10px;
+          font-weight: 400;
+        }
+
+        .dashboard-main {
+          min-width: 0;
+          padding: 26px 28px;
+        }
+
+        .dashboard-topline {
           display: flex;
+          align-items: flex-start;
           justify-content: space-between;
         }
 
-        .screen-heading span,
-        .screen-metrics span {
+        .dashboard-topline span {
           display: block;
-          margin-bottom: 5px;
-          color: #555;
-          font-family: "SFMono-Regular", Consolas, monospace;
-          font-size: 7px;
-          letter-spacing: 0.08em;
-        }
-
-        .screen-heading h3 {
-          margin: 0;
-          font-size: 18px;
-          font-weight: 500;
-          letter-spacing: -0.03em;
-        }
-
-        .screen-date {
-          text-align: right;
+          margin-bottom: 6px;
           color: #4c4c4c;
           font-family: "SFMono-Regular", Consolas, monospace;
-          font-size: 7px;
+          font-size: 6px;
+          letter-spacing: 0.1em;
+        }
+
+        .dashboard-topline h3 {
+          margin: 0;
+          color: #ddd;
+          font-size: 21px;
+          font-weight: 500;
+          letter-spacing: -0.04em;
+          animation: dashboardTextIn 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+
+        .dashboard-date {
+          text-align: right;
+          color: #484848;
+          font-family: "SFMono-Regular", Consolas, monospace;
+          font-size: 6px;
           line-height: 1.7;
         }
 
-        .screen-metrics {
+        .dashboard-stats {
           display: grid;
           grid-template-columns: 1.5fr 1fr 1fr;
           gap: 1px;
-          margin-top: 22px;
+          margin-top: 24px;
           border: 1px solid var(--line);
           background: var(--line);
         }
 
-        .screen-metrics > div {
-          padding: 13px;
-          background: #0a0a0a;
+        .dashboard-stats > div {
+          padding: 16px;
+          background: #0b0b0b;
         }
 
-        .screen-metrics strong {
-          font-size: 12px;
+        .dashboard-stats span {
+          display: block;
+          margin-bottom: 7px;
+          color: #4b4b4b;
+          font-family: "SFMono-Regular", Consolas, monospace;
+          font-size: 6px;
+        }
+
+        .dashboard-stats strong {
+          color: #ddd;
+          font-size: 14px;
           font-weight: 500;
         }
 
-        .screen-visual {
-          position: relative;
-          height: 165px;
-          margin-top: 1px;
-          overflow: hidden;
-          background: #090909;
-          border: 1px solid var(--line);
+        .green-text {
+          color: var(--accent) !important;
         }
 
-        .visual-grid {
+        .dashboard-chart {
+          position: relative;
+          height: 190px;
+          margin-top: 1px;
+          overflow: hidden;
+          border: 1px solid var(--line);
+          background: #0b0b0b;
+        }
+
+        .chart-background {
           position: absolute;
           inset: 0;
-          opacity: 0.4;
+          opacity: 0.55;
           background-image:
             linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
             linear-gradient(
@@ -1578,292 +2003,305 @@ export default function Home() {
               rgba(255, 255, 255, 0.04) 1px,
               transparent 1px
             );
-          background-size: 45px 45px;
+          background-size: 52px 52px;
         }
 
-        .chart-line {
+        .dashboard-chart svg {
           position: absolute;
-          inset: 25px 20px 20px;
-          color: rgba(255, 255, 255, 0.7);
-          animation: chartFloat 5s ease-in-out infinite;
-        }
-
-        .chart-line svg {
-          width: 100%;
-          height: 100%;
-        }
-
-        .chart-label {
-          position: absolute;
-          padding: 5px 7px;
-          border: 1px solid var(--line);
-          background: #0a0a0a;
-          font-family: "SFMono-Regular", Consolas, monospace;
-          font-size: 6px;
-          color: #777;
-        }
-
-        .label-one {
-          left: 18px;
-          top: 14px;
-        }
-
-        .label-two {
-          right: 20px;
-          top: 25px;
-          color: var(--accent);
+          inset: 20px;
+          width: calc(100% - 40px);
+          height: calc(100% - 40px);
         }
 
         .chart-point {
           position: absolute;
-          width: 6px;
-          height: 6px;
-          border: 1px solid #aaa;
-          background: #080808;
+          width: 7px;
+          height: 7px;
           border-radius: 50%;
+          border: 1px solid #999;
+          background: #080808;
+          box-shadow: 0 0 16px rgba(255, 255, 255, 0.25);
+          animation: chartPulse 2.6s ease-in-out infinite;
         }
 
-        .point-one {
-          left: 38%;
-          top: 67%;
+        .chart-point-a {
+          left: 36%;
+          top: 61%;
         }
 
-        .point-two {
-          left: 68%;
-          top: 48%;
+        .chart-point-b {
+          left: 66%;
+          top: 44%;
+          animation-delay: 0.4s;
         }
 
-        .point-three {
+        .chart-point-c {
           right: 9%;
           top: 18%;
+          animation-delay: 0.8s;
         }
 
-        .screen-bottom {
+        .chart-floating-value {
+          position: absolute;
+          right: 20px;
+          top: 20px;
+          padding: 6px 8px;
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          background: #0c0c0c;
+          color: var(--accent);
+          font-family: "SFMono-Regular", Consolas, monospace;
+          font-size: 6px;
+        }
+
+        .dashboard-bottom-grid {
           display: grid;
           grid-template-columns: 1fr 1fr;
           gap: 1px;
           margin-top: 1px;
         }
 
-        .mini-bars,
-        .screen-log {
-          height: 72px;
-          padding: 13px;
+        .dashboard-bars,
+        .dashboard-feed {
+          min-height: 82px;
+          padding: 14px;
           border: 1px solid var(--line);
-          background: #090909;
+          background: #0b0b0b;
         }
 
-        .mini-bars {
+        .dashboard-bars {
           display: flex;
           align-items: end;
           gap: 5px;
         }
 
-        .mini-bars span {
+        .dashboard-bars span {
           flex: 1;
           min-width: 2px;
-          background: #343434;
-          transition: background 0.3s ease;
+          background: #393939;
+          transform-origin: bottom;
+          animation: barBreathe 4s ease-in-out infinite;
         }
 
-        .mini-bars span:nth-child(8),
-        .mini-bars span:nth-child(10) {
-          background: #777;
+        .dashboard-bars span:nth-child(7n) {
+          background: #707070;
         }
 
-        .screen-log {
+        .dashboard-feed {
           display: flex;
           flex-direction: column;
           justify-content: center;
-          gap: 7px;
+          gap: 8px;
+          color: #585858;
           font-family: "SFMono-Regular", Consolas, monospace;
           font-size: 6px;
-          color: #5d5d5d;
         }
 
-        .screen-log div {
+        .dashboard-feed div {
           display: flex;
           align-items: center;
-          gap: 7px;
+          gap: 8px;
         }
 
-        .screen-log i {
+        .dashboard-feed span {
           width: 4px;
           height: 4px;
-          background: var(--accent);
           border-radius: 50%;
+          background: var(--accent);
         }
 
-        .screen-footer {
+        .dashboard-footer {
           display: flex;
+          align-items: center;
           justify-content: space-between;
-          padding: 9px 15px;
+          padding: 10px 15px;
           border-top: 1px solid var(--line);
-          color: #404040;
+          color: #3f3f3f;
           font-family: "SFMono-Regular", Consolas, monospace;
           font-size: 6px;
           letter-spacing: 0.08em;
         }
 
-        .hero-bottom {
+        .hero-meta {
           position: relative;
-          z-index: 4;
+          z-index: 5;
+          width: min(1120px, 100%);
+          margin: 50px auto 0;
           display: flex;
           align-items: center;
           justify-content: space-between;
-          width: min(1120px, 100%);
-          margin: 45px auto 0;
+          color: #464646;
           font-family: "SFMono-Regular", Consolas, monospace;
           font-size: 7px;
+        }
+
+        .hero-scroll {
+          position: relative;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 13px;
+        }
+
+        .hero-scroll i {
+          position: relative;
+          width: 1px;
+          height: 44px;
+          overflow: hidden;
+          background: #252525;
+        }
+
+        .hero-scroll i::after {
+          content: "";
+          position: absolute;
+          top: -22px;
+          left: 0;
+          width: 1px;
+          height: 22px;
+          background: #fff;
+          animation: scrollLine 2.2s ease-in-out infinite;
+        }
+
+        /* ======================================================
+           SECTION COMMON
+        ====================================================== */
+
+        .section-container {
+          position: relative;
+          width: min(1120px, 100%);
+          margin: 0 auto;
+        }
+
+        .section-kicker {
+          gap: 12px;
+        }
+
+        .section-kicker span:first-child {
           color: #4b4b4b;
         }
 
-        .scroll-indicator {
-          position: absolute;
-          left: 50%;
-          width: 1px;
-          height: 45px;
-          transform: translateX(-50%);
-          background: #252525;
-          overflow: hidden;
-        }
+        /* ======================================================
+           INTRO
+        ====================================================== */
 
-        .scroll-indicator i {
-          position: absolute;
-          top: -20px;
-          width: 1px;
-          height: 20px;
-          background: white;
-          animation: scrollLine 2s infinite;
-        }
-
-        /* MANIFESTO */
-
-        .manifesto {
+        .intro-section {
           position: relative;
-          min-height: 65vh;
-          display: flex;
-          align-items: center;
-          padding: 100px 24px;
+          z-index: 1;
+          padding: 180px 24px;
           border-top: 1px solid var(--line);
           border-bottom: 1px solid var(--line);
         }
 
-        .manifesto-grid {
-          width: min(1120px, 100%);
-          margin: 0 auto;
+        .intro-layout {
           display: grid;
-          grid-template-columns: 80px 1.4fr 0.8fr;
-          gap: 40px;
+          grid-template-columns: 1.25fr 0.75fr;
+          gap: 100px;
+          margin-top: 80px;
         }
 
-        .section-number {
-          padding-top: 7px;
-          color: #404040;
-          font-family: "SFMono-Regular", Consolas, monospace;
-          font-size: 9px;
-        }
-
-        .manifesto-title span {
-          color: #525252;
-          font-family: "SFMono-Regular", Consolas, monospace;
-          font-size: 8px;
-          letter-spacing: 0.12em;
-        }
-
-        .manifesto-title h2,
-        .system-header h2,
-        .control-intro h2 {
-          margin: 25px 0 0;
-          font-size: clamp(48px, 6vw, 82px);
+        .intro-title h2,
+        .architecture-header h2,
+        .control-title h2 {
+          margin: 0;
+          font-size: clamp(54px, 6.5vw, 90px);
           line-height: 0.92;
-          letter-spacing: -0.065em;
           font-weight: 450;
+          letter-spacing: -0.07em;
         }
 
-        .manifesto-copy {
-          padding-top: 45px;
+        .intro-title h2 span,
+        .architecture-header h2 span,
+        .control-title h2 span {
+          color: #5f5f5f;
+        }
+
+        .intro-copy {
+          padding-top: 12px;
           color: #777;
-          font-size: 13px;
+          font-size: 14px;
           line-height: 1.8;
         }
 
-        .manifesto-copy p {
-          margin: 0 0 18px;
+        .intro-copy p {
+          max-width: 390px;
+          margin: 0 0 20px;
         }
 
-        .telemetry {
+        .integrity {
           display: flex;
           align-items: center;
-          gap: 25px;
-          margin-top: 45px;
+          gap: 22px;
+          margin-top: 50px;
         }
 
-        .telemetry strong {
-          display: block;
-          color: #eee;
-          font-family: "SFMono-Regular", Consolas, monospace;
-          font-size: 20px;
-          font-weight: 400;
-        }
-
-        .telemetry span {
-          color: #4c4c4c;
-          font-family: "SFMono-Regular", Consolas, monospace;
-          font-size: 7px;
-        }
-
-        .data-pulse {
-          position: relative;
+        .integrity-line {
           width: 100px;
-          height: 30px;
           display: flex;
           align-items: center;
           gap: 4px;
         }
 
-        .data-pulse span {
+        .integrity-line i {
           flex: 1;
           height: 1px;
-          background: #555;
-          animation: pulseData 1.8s infinite;
+          background: #444;
+          animation: integrityPulse 1.8s ease-in-out infinite;
         }
 
-        .data-pulse span:nth-child(2) {
-          animation-delay: 0.1s;
+        .integrity-line i:nth-child(2) {
+          animation-delay: 0.15s;
         }
 
-        .data-pulse span:nth-child(3) {
-          animation-delay: 0.2s;
-        }
-
-        .data-pulse span:nth-child(4) {
+        .integrity-line i:nth-child(3) {
           animation-delay: 0.3s;
         }
 
-        .data-pulse span:nth-child(5) {
-          animation-delay: 0.4s;
+        .integrity-line i:nth-child(4) {
+          animation-delay: 0.45s;
         }
 
-        /* SYSTEM */
+        .integrity strong,
+        .integrity span {
+          display: block;
+          font-family: "SFMono-Regular", Consolas, monospace;
+        }
 
-        .system-section {
+        .integrity strong {
+          color: #eee;
+          font-size: 22px;
+          font-weight: 400;
+        }
+
+        .integrity span {
+          margin-top: 5px;
+          color: #4b4b4b;
+          font-size: 6px;
+          letter-spacing: 0.08em;
+        }
+
+        /* ======================================================
+           ARCHITECTURE
+        ====================================================== */
+
+        .architecture {
           position: relative;
-          min-height: 90vh;
-          padding: 90px 24px;
+          z-index: 1;
+          padding: 170px 24px 130px;
           border-bottom: 1px solid var(--line);
         }
 
-        .system-header {
-          width: min(1120px, 100%);
-          margin: 0 auto;
+        .architecture-header {
           display: flex;
+          align-items: flex-end;
           justify-content: space-between;
         }
 
-        .system-description {
-          align-self: end;
-          width: 220px;
+        .architecture-header h2 {
+          margin-top: 25px;
+        }
+
+        .architecture-header > p {
+          width: 230px;
+          margin: 0 0 6px;
           color: #555;
           font-family: "SFMono-Regular", Consolas, monospace;
           font-size: 8px;
@@ -1871,724 +2309,800 @@ export default function Home() {
           text-transform: uppercase;
         }
 
-        .orbit-system {
-          position: relative;
-          width: min(680px, 90vw);
-          height: 500px;
-          margin: 25px auto 0;
+        .architecture-map-wrap {
+          margin-top: 85px;
         }
 
-        .orbit-ring {
+        .system-map {
+          position: relative;
+          width: min(720px, 92vw);
+          height: 610px;
+          margin: 0 auto;
+        }
+
+        .map-aura {
+          position: absolute;
+          inset: 25%;
+          border-radius: 50%;
+          background: radial-gradient(
+            circle,
+            rgba(255, 255, 255, 0.07),
+            transparent 68%
+          );
+          filter: blur(30px);
+          animation: auraBreathe 5s ease-in-out infinite;
+        }
+
+        .map-ring {
           position: absolute;
           top: 50%;
           left: 50%;
-          border: 1px solid rgba(255, 255, 255, 0.08);
+          border: 1px solid rgba(255, 255, 255, 0.07);
           border-radius: 50%;
           transform: translate(-50%, -50%);
         }
 
-        .ring-one {
-          width: 250px;
-          height: 250px;
-          animation: orbitSpin 24s linear infinite;
+        .ring-a {
+          width: 245px;
+          height: 245px;
+          animation: mapRotate 24s linear infinite;
         }
 
-        .ring-two {
+        .ring-b {
           width: 390px;
           height: 390px;
           border-style: dashed;
-          animation: orbitSpinReverse 35s linear infinite;
+          animation: mapRotateReverse 38s linear infinite;
         }
 
-        .ring-three {
-          width: 540px;
-          height: 540px;
-          opacity: 0.5;
-          animation: orbitSpin 45s linear infinite;
+        .ring-c {
+          width: 555px;
+          height: 555px;
+          opacity: 0.55;
+          animation: mapRotate 50s linear infinite;
         }
 
-        .orbit-center {
+        .map-center {
           position: absolute;
           top: 50%;
           left: 50%;
           width: 130px;
           height: 130px;
-          display: grid;
-          place-items: center;
+          display: flex;
+          align-items: center;
+          justify-content: center;
           transform: translate(-50%, -50%);
         }
 
-        .center-core {
+        .map-core {
           position: relative;
-          width: 82px;
-          height: 82px;
+          width: 96px;
+          height: 96px;
           display: flex;
           flex-direction: column;
           align-items: center;
           justify-content: center;
-          border: 1px solid rgba(255, 255, 255, 0.2);
+          border: 1px solid rgba(255, 255, 255, 0.16);
           border-radius: 50%;
           background: #080808;
-          box-shadow: 0 0 70px rgba(255, 255, 255, 0.07);
+          box-shadow: 0 0 50px rgba(255, 255, 255, 0.04);
         }
 
-        .center-core span {
-          position: absolute;
-          top: 12px;
-          width: 4px;
-          height: 4px;
-          background: var(--accent);
-          border-radius: 50%;
-          box-shadow: 0 0 12px rgba(217, 255, 67, 0.8);
+        .map-core > div {
+          transform: scale(0.55);
+          margin-bottom: -5px;
         }
 
-        .center-core strong {
-          margin-top: 3px;
-          font-size: 15px;
+        .map-core strong {
+          font-size: 14px;
           font-weight: 500;
+          letter-spacing: -0.04em;
         }
 
-        .center-core small {
+        .map-core span {
+          margin-top: 2px;
           color: #555;
           font-family: "SFMono-Regular", Consolas, monospace;
           font-size: 6px;
-          letter-spacing: 0.15em;
         }
 
-        .orbit-node {
+        .map-node {
           position: absolute;
-          width: 130px;
-          min-height: 82px;
+          z-index: 4;
+          width: 135px;
+          min-height: 84px;
+          padding: 14px 15px;
           display: flex;
           flex-direction: column;
           align-items: flex-start;
-          padding: 12px;
-          border: 1px solid var(--line);
-          background: rgba(9, 9, 9, 0.85);
-          color: #777;
-          text-align: left;
+          justify-content: center;
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          border-radius: 15px;
+          background: rgba(10, 10, 10, 0.84);
+          color: #888;
           cursor: pointer;
-          transform: translate(-50%, -50%);
+          text-align: left;
+          backdrop-filter: blur(18px);
           transition:
-            border 0.35s ease,
-            background 0.35s ease,
+            transform 0.35s ease,
+            border-color 0.35s ease,
+            background-color 0.35s ease,
             color 0.35s ease,
             box-shadow 0.35s ease;
         }
 
-        .orbit-node:hover,
-        .orbit-node.active {
-          border-color: rgba(255, 255, 255, 0.35);
-          color: white;
-          background: #0d0d0d;
-          box-shadow: 0 15px 50px rgba(0, 0, 0, 0.4);
+        .map-node:hover {
+          border-color: rgba(255, 255, 255, 0.16);
+          color: #ddd;
+          background: #101010;
         }
 
-        .node-index,
-        .node-status {
+        .map-node.active {
+          border-color: rgba(217, 255, 67, 0.35);
+          color: #f5f5f7;
+          background: #101010;
+          box-shadow:
+            0 15px 40px rgba(0, 0, 0, 0.45),
+            0 0 30px rgba(217, 255, 67, 0.035);
+        }
+
+        .map-node-number {
+          color: #4c4c4c;
           font-family: "SFMono-Regular", Consolas, monospace;
           font-size: 6px;
-          color: #4e4e4e;
         }
 
-        .node-title {
+        .map-node strong {
           margin-top: 7px;
           font-size: 10px;
+          font-weight: 500;
         }
 
-        .node-status {
-          margin-top: auto;
-          color: #666;
+        .map-node small {
+          margin-top: 4px;
+          color: #555;
+          font-family: "SFMono-Regular", Consolas, monospace;
+          font-size: 6px;
         }
 
-        .orbit-node.active .node-status {
+        .map-node.active small {
           color: var(--accent);
         }
 
-        .system-footer {
-          width: min(680px, 90vw);
-          margin: -10px auto 0;
-          display: flex;
-          justify-content: space-between;
+        .architecture-footer {
+          display: grid;
+          grid-template-columns: 130px 1fr 130px;
+          gap: 20px;
+          align-items: center;
+          margin-top: 50px;
+          padding-top: 20px;
+          border-top: 1px solid var(--line);
           color: #484848;
           font-family: "SFMono-Regular", Consolas, monospace;
           font-size: 7px;
         }
 
-        .system-footer strong {
-          color: #8a8a8a;
+        .architecture-footer strong {
+          color: #999;
           font-weight: 400;
+          text-align: center;
         }
 
-        /* MODULES */
-
-        .modules {
-          position: relative;
+        .architecture-footer span:last-child {
+          text-align: right;
         }
+
+        /* ======================================================
+           MODULES
+        ====================================================== */
 
         .module-section {
           position: relative;
           min-height: 100vh;
-          padding: 100px 24px;
           display: flex;
-          flex-direction: column;
-          justify-content: space-between;
+          align-items: center;
+          padding: 110px 24px;
           border-bottom: 1px solid var(--line);
-          transition: background 0.7s ease;
         }
 
-        .module-section.is-active {
+        .module-section::before {
+          content: "";
+          position: absolute;
+          inset: 0;
+          pointer-events: none;
           background: radial-gradient(
-            circle at 70% 50%,
+            circle at 80% 50%,
             rgba(255, 255, 255, 0.025),
-            transparent 35%
+            transparent 32%
           );
+          opacity: 0;
+          transition: opacity 1s ease;
         }
 
-        .module-top,
-        .module-bottom {
+        .module-section.active::before {
+          opacity: 1;
+        }
+
+        .module-inner {
+          position: relative;
+          z-index: 2;
           width: min(1120px, 100%);
           margin: 0 auto;
+        }
+
+        .module-header,
+        .module-footer {
           display: flex;
+          align-items: center;
           justify-content: space-between;
+          gap: 20px;
           color: #444;
           font-family: "SFMono-Regular", Consolas, monospace;
           font-size: 7px;
-          letter-spacing: 0.08em;
         }
 
         .module-layout {
-          width: min(1120px, 100%);
-          margin: 60px auto 65px;
           display: grid;
-          grid-template-columns: 0.75fr 1.25fr;
-          gap: 70px;
+          grid-template-columns: 0.8fr 1.2fr;
+          gap: 100px;
           align-items: center;
+          margin-top: 75px;
+          margin-bottom: 85px;
         }
 
-        .module-label {
-          display: flex;
+        .module-status {
+          display: inline-flex;
           align-items: center;
           gap: 7px;
           color: #777;
           font-family: "SFMono-Regular", Consolas, monospace;
           font-size: 7px;
-          text-transform: uppercase;
+          letter-spacing: 0.08em;
         }
 
-        .module-label i {
+        .module-status i {
           width: 5px;
           height: 5px;
-          background: var(--accent);
           border-radius: 50%;
-          box-shadow: 0 0 10px rgba(217, 255, 67, 0.4);
+          background: var(--accent);
+          box-shadow: 0 0 9px rgba(217, 255, 67, 0.65);
         }
 
         .module-copy h2 {
-          margin: 20px 0 18px;
-          max-width: 450px;
-          font-size: clamp(48px, 5.3vw, 74px);
-          line-height: 0.91;
-          letter-spacing: -0.065em;
+          max-width: 560px;
+          margin: 23px 0 0;
+          font-size: clamp(52px, 5.6vw, 78px);
+          line-height: 0.93;
           font-weight: 450;
+          letter-spacing: -0.065em;
         }
 
         .module-copy > p {
-          max-width: 390px;
-          margin: 0;
-          color: #717171;
-          font-size: 13px;
-          line-height: 1.7;
+          max-width: 440px;
+          margin: 28px 0 0;
+          color: #777;
+          font-size: 14px;
+          line-height: 1.75;
         }
 
-        .module-metric {
-          margin-top: 40px;
-          padding-top: 17px;
+        .module-number {
+          margin-top: 46px;
+        }
+
+        .module-number span,
+        .module-number strong {
+          display: block;
+          font-family: "SFMono-Regular", Consolas, monospace;
+        }
+
+        .module-number span {
+          color: #4a4a4a;
+          font-size: 6px;
+          letter-spacing: 0.09em;
+        }
+
+        .module-number strong {
+          margin-top: 8px;
+          color: #eee;
+          font-size: 28px;
+          font-weight: 400;
+          letter-spacing: -0.04em;
+        }
+
+        .module-features {
+          margin-top: 45px;
           border-top: 1px solid var(--line);
         }
 
-        .module-metric span {
-          display: block;
-          margin-bottom: 7px;
-          color: #4e4e4e;
-          font-family: "SFMono-Regular", Consolas, monospace;
-          font-size: 7px;
-          text-transform: uppercase;
-        }
-
-        .module-metric strong {
-          font-family: "SFMono-Regular", Consolas, monospace;
-          font-size: 25px;
-          font-weight: 400;
-          letter-spacing: -0.03em;
-        }
-
-        .module-bullets {
-          margin-top: 35px;
-          border-top: 1px solid var(--line-soft);
-        }
-
-        .module-bullets > div {
+        .module-features > div {
           display: grid;
-          grid-template-columns: 30px 1fr;
-          align-items: center;
-          min-height: 39px;
+          grid-template-columns: 34px 1fr;
+          gap: 15px;
+          padding: 13px 0;
           border-bottom: 1px solid var(--line-soft);
         }
 
-        .module-bullets span {
-          color: #3e3e3e;
+        .module-features span {
+          color: #454545;
           font-family: "SFMono-Regular", Consolas, monospace;
           font-size: 7px;
         }
 
-        .module-bullets p {
+        .module-features p {
           margin: 0;
-          color: #818181;
+          color: #777;
           font-size: 10px;
         }
 
-        .module-stage {
-          position: relative;
-          min-height: 500px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          border: 1px solid var(--line);
-          background:
-            linear-gradient(135deg, rgba(255, 255, 255, 0.02), transparent 45%),
-            #080808;
-          overflow: hidden;
-        }
-
-        .module-stage::before,
-        .module-stage::after {
-          content: "";
-          position: absolute;
-          pointer-events: none;
-        }
-
-        .module-stage::before {
-          inset: 0;
-          opacity: 0.25;
-          background-image:
-            linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
-            linear-gradient(
-              90deg,
-              rgba(255, 255, 255, 0.04) 1px,
-              transparent 1px
-            );
-          background-size: 60px 60px;
-        }
-
-        .module-stage::after {
-          width: 250px;
-          height: 250px;
-          top: 50%;
-          left: 50%;
-          transform: translate(-50%, -50%);
-          border: 1px solid rgba(255, 255, 255, 0.04);
-          border-radius: 50%;
-        }
-
-        .stage-coordinate {
-          position: absolute;
-          left: 15px;
-          bottom: 13px;
-          color: #383838;
-          font-family: "SFMono-Regular", Consolas, monospace;
-          font-size: 6px;
-        }
-
-        .stage-status {
-          position: absolute;
-          top: 14px;
-          right: 15px;
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          color: #454545;
-          font-family: "SFMono-Regular", Consolas, monospace;
-          font-size: 6px;
-        }
-
-        .stage-status span {
-          width: 4px;
-          height: 4px;
-          background: var(--accent);
-          border-radius: 50%;
-        }
-
-        .module-bottom {
-          align-items: center;
-        }
-
-        .module-progress {
-          width: 280px;
-          height: 1px;
-          background: #202020;
-        }
-
-        .module-progress i {
-          display: block;
-          height: 1px;
-          background: #aaa;
-        }
-
-        /* SALES */
-
         .module-visual {
-          position: relative;
-          z-index: 2;
-          width: 100%;
-          height: 100%;
+          min-width: 0;
         }
 
-        .sales-visual {
-          display: flex;
+        .visual-card {
+          position: relative;
+          min-height: 520px;
+          overflow: hidden;
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          border-radius: 22px;
+          background: linear-gradient(145deg, #0c0c0c, #070707);
+          box-shadow: 0 40px 80px rgba(0, 0, 0, 0.38);
+          transition:
+            transform 0.7s cubic-bezier(0.22, 1, 0.36, 1),
+            border-color 0.5s ease;
+        }
+
+        .module-section.active .visual-card {
+          transform: translateY(-6px);
+          border-color: rgba(255, 255, 255, 0.12);
+        }
+
+        /* ======================================================
+           SALES VISUAL
+        ====================================================== */
+
+        .sales-card {
+          display: grid;
+          grid-template-columns: 1fr 145px;
+          gap: 32px;
+          padding: 42px;
           align-items: center;
-          justify-content: center;
-          gap: 45px;
-          padding: 45px;
         }
 
-        .invoice-stack {
-          position: relative;
-          width: 260px;
-          height: 290px;
-        }
-
-        .invoice-card {
+        .visual-card-header {
           position: absolute;
-          left: 0;
-          top: 20px;
-          width: 250px;
-          min-height: 180px;
-          padding: 17px;
-          border: 1px solid rgba(255, 255, 255, 0.14);
-          background: #0c0c0c;
-          box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
-          transition: 0.5s ease;
-        }
-
-        .invoice-card:first-child {
-          z-index: 6;
-          transform: none !important;
-        }
-
-        .invoice-head {
+          top: 24px;
+          left: 24px;
+          right: 24px;
           display: flex;
           justify-content: space-between;
-          color: #555;
+          color: #4a4a4a;
+          font-family: "SFMono-Regular", Consolas, monospace;
+          font-size: 6px;
+        }
+
+        .visual-card-header small {
+          color: var(--accent);
+        }
+
+        .sales-stack {
+          position: relative;
+          width: 285px;
+          height: 330px;
+          margin-left: 10px;
+        }
+
+        .invoice {
+          position: absolute;
+          top: 35px;
+          left: 20px;
+          width: 240px;
+          min-height: 220px;
+          padding: 24px;
+          border: 1px solid rgba(255, 255, 255, 0.11);
+          border-radius: 14px;
+          background: linear-gradient(145deg, #171717, #0c0c0c);
+          box-shadow: 0 25px 50px rgba(0, 0, 0, 0.35);
+          transition: transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+
+        .invoice:nth-child(1) {
+          z-index: 3;
+        }
+
+        .invoice:nth-child(2) {
+          z-index: 2;
+        }
+
+        .invoice:nth-child(3) {
+          z-index: 1;
+        }
+
+        .module-section.active .invoice {
+          animation: invoiceFloat 5s ease-in-out infinite;
+        }
+
+        .invoice-top {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 10px;
+          color: #777;
           font-family: "SFMono-Regular", Consolas, monospace;
           font-size: 7px;
         }
 
-        .invoice-head .paid {
+        .invoice-top em {
+          font-style: normal;
+          font-size: 6px;
+        }
+
+        .invoice-paid {
+          color: #aaa;
+        }
+
+        .invoice-pending {
           color: var(--accent);
         }
 
-        .invoice-head .pending {
-          color: #777;
-        }
-
-        .invoice-card strong {
+        .invoice > strong {
           display: block;
-          margin-top: 32px;
+          margin-top: 34px;
+          color: #eee;
           font-family: "SFMono-Regular", Consolas, monospace;
-          font-size: 23px;
+          font-size: 28px;
           font-weight: 400;
         }
 
-        .invoice-line {
+        .invoice-lines {
           display: flex;
+          flex-direction: column;
           gap: 5px;
-          margin-top: 25px;
+          margin-top: 30px;
         }
 
-        .invoice-line span {
-          height: 3px;
-          background: #292929;
-        }
-
-        .invoice-line span:nth-child(1) {
-          width: 55%;
-        }
-
-        .invoice-line span:nth-child(2) {
-          width: 20%;
-        }
-
-        .invoice-line span:nth-child(3) {
-          width: 15%;
-        }
-
-        .invoice-card small {
+        .invoice-lines span {
           display: block;
-          margin-top: 25px;
-          color: #444;
+          height: 2px;
+          background: #272727;
+        }
+
+        .invoice-lines span:nth-child(1) {
+          width: 80%;
+        }
+
+        .invoice-lines span:nth-child(2) {
+          width: 60%;
+        }
+
+        .invoice-lines span:nth-child(3) {
+          width: 45%;
+        }
+
+        .invoice > small {
+          display: block;
+          margin-top: 22px;
+          color: #484848;
           font-family: "SFMono-Regular", Consolas, monospace;
-          font-size: 6px;
+          font-size: 5px;
         }
 
-        .visual-side-data {
-          width: 150px;
-          font-family: "SFMono-Regular", Consolas, monospace;
+        .sales-flow {
+          border-left: 1px solid var(--line);
+          padding-left: 24px;
         }
 
-        .visual-side-data > span {
-          color: #444;
-          font-size: 6px;
-        }
-
-        .flow-line {
+        .sales-flow > div {
           position: relative;
-          display: flex;
-          gap: 12px;
-          margin-top: 24px;
-          padding-bottom: 20px;
+          display: grid;
+          grid-template-columns: 8px 1fr;
+          gap: 10px;
+          padding-bottom: 30px;
         }
 
-        .flow-line:not(:last-child)::after {
+        .sales-flow > div:not(:last-child)::after {
           content: "";
           position: absolute;
+          top: 7px;
           left: 2px;
-          top: 9px;
           width: 1px;
-          height: 36px;
-          background: #292929;
+          height: 55px;
+          background: #272727;
         }
 
-        .flow-line i {
+        .sales-flow span {
           position: relative;
           z-index: 2;
           width: 5px;
           height: 5px;
-          margin-top: 2px;
-          background: white;
+          margin-top: 3px;
           border-radius: 50%;
+          background: #aaa;
         }
 
-        .flow-line strong,
-        .flow-line small {
+        .sales-flow strong,
+        .sales-flow small {
           display: block;
         }
 
-        .flow-line strong {
+        .sales-flow strong {
           color: #aaa;
-          font-size: 8px;
+          font-size: 9px;
           font-weight: 400;
         }
 
-        .flow-line small {
+        .sales-flow small {
           margin-top: 4px;
-          color: #4c4c4c;
+          color: #4b4b4b;
+          font-family: "SFMono-Regular", Consolas, monospace;
           font-size: 6px;
         }
 
-        /* WAREHOUSE */
+        /* ======================================================
+           INVENTORY VISUAL
+        ====================================================== */
 
-        .warehouse-visual {
-          padding: 60px;
+        .inventory-card {
           display: grid;
-          grid-template-columns: 1fr 180px;
-          gap: 30px;
+          grid-template-columns: 1fr 170px;
+          gap: 28px;
+          padding: 55px;
           align-items: center;
         }
 
-        .warehouse-grid {
+        .inventory-grid {
           display: grid;
-          grid-template-columns: repeat(8, 1fr);
+          grid-template-columns: repeat(7, 1fr);
           gap: 5px;
         }
 
-        .warehouse-grid span {
+        .inventory-grid span {
           position: relative;
           aspect-ratio: 1;
-          border: 1px solid rgba(255, 255, 255, 0.06);
-          background: rgba(255, 255, 255, 0.015);
+          border: 1px solid rgba(255, 255, 255, 0.055);
+          background: rgba(255, 255, 255, 0.012);
+          transition:
+            border-color 0.4s ease,
+            background-color 0.4s ease;
         }
 
-        .warehouse-grid span.occupied {
-          border-color: rgba(255, 255, 255, 0.18);
+        .module-section.active .inventory-grid span {
+          animation: gridPulse 5s ease-in-out infinite;
         }
 
-        .warehouse-grid span.warning {
-          border-color: rgba(217, 255, 67, 0.4);
+        .inventory-grid span.occupied {
+          border-color: rgba(255, 255, 255, 0.17);
         }
 
-        .warehouse-grid b,
-        .warehouse-grid i {
+        .inventory-grid span.warning {
+          border-color: rgba(217, 255, 67, 0.35);
+        }
+
+        .inventory-grid i {
           position: absolute;
-          inset: 25%;
-          background: #777;
+          inset: 26%;
+          display: block;
+          background: #858585;
         }
 
-        .warehouse-grid i {
+        .inventory-grid span.warning i {
           background: var(--accent);
-          opacity: 0.75;
         }
 
-        .warehouse-scan {
+        .inventory-scanner {
           position: relative;
-          height: 280px;
+          height: 290px;
+          overflow: hidden;
           border: 1px solid var(--line);
           background: rgba(255, 255, 255, 0.01);
-          overflow: hidden;
         }
 
-        .scan-beam {
+        .scan-line {
           position: absolute;
-          top: 0;
           left: 0;
+          top: -2px;
           width: 100%;
           height: 1px;
           background: var(--accent);
-          box-shadow: 0 0 20px var(--accent);
-          animation: scan 2.5s linear infinite;
+          box-shadow: 0 0 18px rgba(217, 255, 67, 0.8);
+          animation: scannerMove 3.2s linear infinite;
         }
 
         .scan-target {
           position: absolute;
           top: 50%;
           left: 50%;
-          width: 90px;
-          height: 90px;
+          width: 92px;
+          height: 92px;
           transform: translate(-50%, -50%);
         }
 
-        .scan-target span {
+        .scan-target i {
           position: absolute;
-          width: 18px;
-          height: 18px;
-          border-color: #aaa;
+          width: 20px;
+          height: 20px;
+          border-color: #888;
         }
 
-        .scan-target span:nth-child(1) {
+        .scan-target i:nth-child(1) {
           top: 0;
           left: 0;
           border-top: 1px solid;
           border-left: 1px solid;
         }
 
-        .scan-target span:nth-child(2) {
+        .scan-target i:nth-child(2) {
           top: 0;
           right: 0;
           border-top: 1px solid;
           border-right: 1px solid;
         }
 
-        .scan-target span:nth-child(3) {
+        .scan-target i:nth-child(3) {
           bottom: 0;
           left: 0;
-          border-bottom: 1px solid;
           border-left: 1px solid;
+          border-bottom: 1px solid;
         }
 
-        .scan-target span:nth-child(4) {
+        .scan-target i:nth-child(4) {
           bottom: 0;
           right: 0;
-          border-bottom: 1px solid;
           border-right: 1px solid;
+          border-bottom: 1px solid;
         }
 
-        .scan-label {
+        .scan-copy {
           position: absolute;
-          bottom: 18px;
           left: 18px;
+          bottom: 18px;
         }
 
-        .scan-label strong,
-        .scan-label small {
+        .scan-copy strong,
+        .scan-copy span {
           display: block;
           font-family: "SFMono-Regular", Consolas, monospace;
         }
 
-        .scan-label strong {
-          font-size: 8px;
+        .scan-copy strong {
+          color: #aaa;
+          font-size: 7px;
+          font-weight: 400;
         }
 
-        .scan-label small {
-          margin-top: 5px;
+        .scan-copy span {
+          margin-top: 4px;
           color: var(--accent);
-          font-size: 6px;
+          font-size: 5px;
         }
 
-        .warehouse-stats {
+        .inventory-stats {
           grid-column: 1 / -1;
           display: grid;
           grid-template-columns: repeat(3, 1fr);
           border-top: 1px solid var(--line);
+          margin-top: 10px;
         }
 
-        .warehouse-stats div {
-          padding-top: 15px;
+        .inventory-stats div {
+          padding-top: 18px;
           border-right: 1px solid var(--line);
         }
 
-        .warehouse-stats div:last-child {
-          border: 0;
-          padding-left: 15px;
+        .inventory-stats div:last-child {
+          border-right: 0;
+          padding-left: 18px;
         }
 
-        .warehouse-stats span,
-        .warehouse-stats strong {
+        .inventory-stats span,
+        .inventory-stats strong {
           display: block;
           font-family: "SFMono-Regular", Consolas, monospace;
         }
 
-        .warehouse-stats span {
-          color: #444;
+        .inventory-stats span {
+          color: #454545;
           font-size: 6px;
         }
 
-        .warehouse-stats strong {
+        .inventory-stats strong {
           margin-top: 7px;
-          font-size: 16px;
+          color: #aaa;
+          font-size: 18px;
           font-weight: 400;
         }
 
-        /* PROCUREMENT */
+        /* ======================================================
+           PROCUREMENT VISUAL
+        ====================================================== */
 
-        .procurement-visual {
-          padding: 60px 45px;
+        .procurement-card {
+          padding: 52px;
           display: flex;
           flex-direction: column;
           justify-content: center;
         }
 
-        .procurement-line {
+        .procurement-intro {
+          display: flex;
+          justify-content: space-between;
+          align-items: end;
+          gap: 20px;
+          margin-bottom: 75px;
+        }
+
+        .procurement-intro span {
+          color: #4c4c4c;
+          font-family: "SFMono-Regular", Consolas, monospace;
+          font-size: 6px;
+        }
+
+        .procurement-intro strong {
+          color: #aaa;
+          font-size: 14px;
+          font-weight: 400;
+        }
+
+        .procurement-track {
           position: relative;
-          height: 1px;
-          background: #292929;
-        }
-
-        .line-progress {
-          position: absolute;
-          left: 0;
-          width: 100%;
-          height: 1px;
-          background: linear-gradient(90deg, transparent, #aaa, transparent);
-          animation: progressLine 2.5s infinite;
-        }
-
-        .procurement-chain {
           display: grid;
           grid-template-columns: repeat(5, 1fr);
-          margin-top: -15px;
+          gap: 0;
+        }
+
+        .procurement-progress {
+          position: absolute;
+          left: 0;
+          right: 0;
+          top: 15px;
+          height: 1px;
+          overflow: hidden;
+          background: #272727;
+        }
+
+        .procurement-progress::after {
+          content: "";
+          position: absolute;
+          inset: 0;
+          width: 25%;
+          background: linear-gradient(90deg, transparent, #aaa, transparent);
+          animation: progressTravel 3s linear infinite;
         }
 
         .procurement-step {
+          position: relative;
+          z-index: 2;
           display: flex;
           flex-direction: column;
           align-items: center;
           text-align: center;
-          animation: nodeAppear 0.8s ease both;
+          opacity: 0;
         }
 
-        .procurement-node {
-          position: relative;
-          z-index: 2;
+        .module-section.active .procurement-step {
+          animation: stepAppear 0.8s ease forwards;
+        }
+
+        .module-section.active .procurement-step:nth-child(2) {
+          animation-delay: 0ms !important;
+        }
+
+        .module-section.active .procurement-step:nth-child(3) {
+          animation-delay: 110ms !important;
+        }
+
+        .module-section.active .procurement-step:nth-child(4) {
+          animation-delay: 220ms !important;
+        }
+
+        .module-section.active .procurement-step:nth-child(5) {
+          animation-delay: 330ms !important;
+        }
+
+        .module-section.active .procurement-step:nth-child(6) {
+          animation-delay: 440ms !important;
+        }
+
+        .procurement-circle {
           width: 30px;
           height: 30px;
           display: grid;
@@ -2596,119 +3110,117 @@ export default function Home() {
           border: 1px solid #555;
           border-radius: 50%;
           background: #080808;
-        }
-
-        .procurement-node span {
           color: #777;
           font-family: "SFMono-Regular", Consolas, monospace;
           font-size: 6px;
         }
 
-        .procurement-step small,
-        .procurement-step strong {
+        .procurement-step span {
+          margin-top: 14px;
+          color: #4a4a4a;
           font-family: "SFMono-Regular", Consolas, monospace;
-        }
-
-        .procurement-step small {
-          margin-top: 15px;
-          color: #484848;
           font-size: 6px;
         }
 
         .procurement-step strong {
           margin-top: 5px;
-          color: #999;
+          color: #aaa;
+          font-family: "SFMono-Regular", Consolas, monospace;
           font-size: 7px;
           font-weight: 400;
         }
 
-        .vendor-panel {
+        .vendor-card {
           display: grid;
           grid-template-columns: 2fr 1fr 1fr;
-          margin-top: 70px;
+          margin-top: 72px;
           border: 1px solid var(--line);
         }
 
-        .vendor-panel div {
+        .vendor-card > div {
           padding: 18px;
           border-right: 1px solid var(--line);
         }
 
-        .vendor-panel div:last-child {
-          border: 0;
+        .vendor-card > div:last-child {
+          border-right: 0;
         }
 
-        .vendor-panel span,
-        .vendor-panel strong {
+        .vendor-card span,
+        .vendor-card strong {
           display: block;
           font-family: "SFMono-Regular", Consolas, monospace;
         }
 
-        .vendor-panel span {
+        .vendor-card span {
           color: #444;
           font-size: 6px;
         }
 
-        .vendor-panel strong {
+        .vendor-card strong {
           margin-top: 7px;
           color: #aaa;
           font-size: 9px;
           font-weight: 400;
         }
 
-        /* RISK */
+        /* ======================================================
+           RISK VISUAL
+        ====================================================== */
 
-        .risk-visual {
-          padding: 50px;
+        .risk-card {
           display: flex;
           align-items: center;
           justify-content: center;
-          gap: 80px;
+          gap: 75px;
+          padding: 55px;
         }
 
-        .radar {
+        .risk-radar {
           position: relative;
-          width: 300px;
-          height: 300px;
+          width: 290px;
+          height: 290px;
+          flex-shrink: 0;
           border-radius: 50%;
         }
 
         .radar-ring {
           position: absolute;
-          inset: 50%;
-          border: 1px solid rgba(255, 255, 255, 0.1);
+          top: 50%;
+          left: 50%;
+          border: 1px solid rgba(255, 255, 255, 0.09);
           border-radius: 50%;
           transform: translate(-50%, -50%);
         }
 
-        .r1 {
+        .radar-one {
           width: 100%;
           height: 100%;
         }
 
-        .r2 {
+        .radar-two {
           width: 68%;
           height: 68%;
         }
 
-        .r3 {
+        .radar-three {
           width: 34%;
           height: 34%;
         }
 
-        .radar-cross {
+        .radar-line {
           position: absolute;
-          background: rgba(255, 255, 255, 0.06);
+          background: rgba(255, 255, 255, 0.055);
         }
 
-        .cross-x {
+        .radar-x {
           top: 50%;
           left: 0;
           width: 100%;
           height: 1px;
         }
 
-        .cross-y {
+        .radar-y {
           top: 0;
           left: 50%;
           width: 1px;
@@ -2727,137 +3239,162 @@ export default function Home() {
             rgba(217, 255, 67, 0.8),
             transparent
           );
-          animation: radarSweep 3s linear infinite;
+          animation: radarRotate 3.5s linear infinite;
         }
 
-        .risk-dot {
+        .risk-point {
           position: absolute;
           width: 6px;
           height: 6px;
           border-radius: 50%;
           background: #999;
-          box-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
-          animation: riskPulse 2s infinite;
+          box-shadow: 0 0 15px rgba(255, 255, 255, 0.25);
+          animation: riskPulse 2.6s ease-in-out infinite;
         }
 
-        .dot-a {
-          top: 25%;
+        .point-a {
+          top: 24%;
           left: 64%;
         }
 
-        .dot-b {
-          top: 62%;
+        .point-b {
+          top: 63%;
           left: 25%;
+          animation-delay: 0.3s;
         }
 
-        .dot-c {
+        .point-c {
           top: 73%;
           left: 69%;
+          animation-delay: 0.6s;
         }
 
-        .dot-d {
+        .point-d {
           top: 35%;
-          left: 32%;
+          left: 31%;
           background: var(--accent);
         }
 
-        .dot-e {
+        .point-e {
           top: 54%;
           left: 77%;
+          animation-delay: 0.9s;
         }
 
-        .radar-center {
+        .radar-core {
           position: absolute;
           top: 50%;
           left: 50%;
+          width: 42px;
+          height: 42px;
           display: grid;
           place-items: center;
-          width: 40px;
-          height: 40px;
           transform: translate(-50%, -50%);
           border: 1px solid #555;
           border-radius: 50%;
           background: #080808;
           color: #aaa;
           font-family: "SFMono-Regular", Consolas, monospace;
-          font-size: 8px;
+          font-size: 7px;
         }
 
-        .risk-panel {
-          width: 190px;
+        .risk-info {
+          width: 175px;
         }
 
-        .risk-panel > span {
-          color: #444;
+        .risk-info > span {
+          color: #464646;
           font-family: "SFMono-Regular", Consolas, monospace;
           font-size: 6px;
         }
 
-        .risk-panel > strong {
+        .risk-info > strong {
           display: block;
-          margin-top: 14px;
+          margin-top: 13px;
+          color: #eee;
           font-family: "SFMono-Regular", Consolas, monospace;
-          font-size: 25px;
+          font-size: 27px;
           font-weight: 400;
         }
 
-        .risk-panel > strong small {
+        .risk-info > strong small {
           display: block;
-          margin-top: 5px;
-          color: #444;
+          margin-top: 4px;
+          color: #4a4a4a;
           font-size: 6px;
-          font-weight: 400;
         }
 
-        .risk-bars {
-          margin-top: 30px;
+        .aging {
+          margin-top: 28px;
         }
 
-        .risk-bars div {
+        .aging div {
           display: grid;
-          grid-template-columns: 35px 1fr;
+          grid-template-columns: 36px 1fr;
           align-items: center;
           gap: 10px;
           margin-bottom: 13px;
         }
 
-        .risk-bars span {
+        .aging span {
           color: #4d4d4d;
           font-family: "SFMono-Regular", Consolas, monospace;
           font-size: 6px;
         }
 
-        .risk-bars i {
+        .aging i {
           display: block;
           height: 2px;
           background: #666;
         }
 
-        .risk-bars div:last-child i {
+        .aging div:last-child i {
           background: var(--accent);
         }
 
-        /* CONTROL STRIP */
+        /* ======================================================
+           MODULE FOOTER
+        ====================================================== */
 
-        .control-strip {
+        .module-footer {
+          padding-top: 20px;
+          border-top: 1px solid var(--line);
+        }
+
+        .module-progress {
+          flex: 1;
+          max-width: 150px;
+          height: 1px;
+          overflow: hidden;
+          background: #272727;
+        }
+
+        .module-progress i {
+          display: block;
+          height: 1px;
+          background: #777;
+          transition: width 1s ease;
+        }
+
+        /* ======================================================
+           CONTROL
+        ====================================================== */
+
+        .control-section {
           position: relative;
-          padding: 110px 24px;
+          padding: 180px 24px;
           border-bottom: 1px solid var(--line);
         }
 
-        .control-strip-inner {
-          width: min(1120px, 100%);
-          margin: 0 auto;
+        .control-layout {
           display: grid;
           grid-template-columns: 1fr 1fr;
           gap: 100px;
           align-items: center;
         }
 
-        .control-intro span {
-          color: #484848;
-          font-family: "SFMono-Regular", Consolas, monospace;
-          font-size: 8px;
+        .control-title h2 {
+          margin-top: 24px;
         }
 
         .control-stream {
@@ -2868,9 +3405,10 @@ export default function Home() {
           display: grid;
           grid-template-columns: 100px 1fr 130px 80px;
           gap: 15px;
+          min-height: 62px;
           align-items: center;
-          min-height: 55px;
           border-bottom: 1px solid var(--line);
+          color: #777;
           font-family: "SFMono-Regular", Consolas, monospace;
           font-size: 7px;
         }
@@ -2879,9 +3417,9 @@ export default function Home() {
           color: #555;
         }
 
-        .stream-row i {
+        .stream-row > i {
           height: 1px;
-          background: #282828;
+          background: #292929;
         }
 
         .stream-row strong {
@@ -2895,19 +3433,32 @@ export default function Home() {
           text-align: right;
         }
 
-        /* FINAL */
+        /* ======================================================
+           FINAL
+        ====================================================== */
 
-        .final {
+        .final-section {
           position: relative;
-          min-height: 75vh;
+          min-height: 80vh;
           display: flex;
           align-items: center;
-          padding: 100px 24px;
+          padding: 150px 24px;
           overflow: hidden;
         }
 
         .final-grid {
-          opacity: 0.25;
+          position: absolute;
+          inset: 0;
+          pointer-events: none;
+          opacity: 0.18;
+          background-image:
+            linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+            linear-gradient(
+              90deg,
+              rgba(255, 255, 255, 0.04) 1px,
+              transparent 1px
+            );
+          background-size: 90px 90px;
           mask-image: linear-gradient(
             to bottom,
             transparent,
@@ -2916,51 +3467,70 @@ export default function Home() {
           );
         }
 
+        .final-glow {
+          position: absolute;
+          width: 500px;
+          height: 500px;
+          right: 0;
+          top: 50%;
+          transform: translateY(-50%);
+          border-radius: 50%;
+          background: radial-gradient(
+            circle,
+            rgba(255, 255, 255, 0.055),
+            transparent 70%
+          );
+          filter: blur(35px);
+          pointer-events: none;
+        }
+
         .final-content {
           position: relative;
           z-index: 3;
-          width: min(1120px, 100%);
-          margin: 0 auto;
+          width: 100%;
         }
 
         .final-content h2 {
-          margin: 25px 0;
-          font-size: clamp(70px, 10vw, 145px);
+          max-width: 950px;
+          margin: 28px 0;
+          font-size: clamp(76px, 10vw, 145px);
           line-height: 0.8;
           letter-spacing: -0.085em;
           font-weight: 450;
         }
 
         .final-content h2 span {
-          color: #656565;
+          color: #626262;
         }
 
         .final-content p {
-          width: 340px;
-          color: #707070;
+          max-width: 390px;
+          margin: 0;
+          color: #717171;
           font-size: 13px;
-          line-height: 1.7;
+          line-height: 1.75;
         }
 
         .final-button {
           display: inline-flex;
           align-items: center;
-          gap: 35px;
-          margin-top: 25px;
+          gap: 45px;
+          margin-top: 32px;
           padding: 15px 18px;
-          border: 1px solid #555;
-          background: #eee;
+          border: 1px solid rgba(255, 255, 255, 0.14);
+          border-radius: 999px;
+          background: #f2f2f2;
           color: #050505;
           font-family: "SFMono-Regular", Consolas, monospace;
-          font-size: 9px;
+          font-size: 8px;
           transition:
             transform 0.3s ease,
-            background 0.3s ease;
+            background-color 0.3s ease;
         }
 
         .final-button:hover {
-          transform: translateY(-3px);
-          background: white;
+          transform: translateY(-2px);
+          background: #fff;
         }
 
         .final-button strong {
@@ -2970,17 +3540,19 @@ export default function Home() {
 
         .final-orbit {
           position: absolute;
-          width: 550px;
-          height: 550px;
           right: -80px;
           top: 50%;
+          width: 560px;
+          height: 560px;
           transform: translateY(-50%);
+          opacity: 0.9;
         }
 
         .final-orbit div {
           position: absolute;
-          inset: 50%;
-          border: 1px solid rgba(255, 255, 255, 0.08);
+          top: 50%;
+          left: 50%;
+          border: 1px solid rgba(255, 255, 255, 0.075);
           border-radius: 50%;
           transform: translate(-50%, -50%);
         }
@@ -2988,70 +3560,74 @@ export default function Home() {
         .final-orbit div:nth-child(1) {
           width: 100%;
           height: 100%;
-          animation: orbitSpin 25s linear infinite;
+          animation: mapRotate 25s linear infinite;
         }
 
         .final-orbit div:nth-child(2) {
-          width: 65%;
-          height: 65%;
-          animation: orbitSpinReverse 18s linear infinite;
+          width: 66%;
+          height: 66%;
+          border-style: dashed;
+          animation: mapRotateReverse 18s linear infinite;
         }
 
         .final-orbit div:nth-child(3) {
           width: 30%;
           height: 30%;
-          border-color: rgba(217, 255, 67, 0.25);
+          border-color: rgba(217, 255, 67, 0.22);
         }
 
         .final-orbit span {
           position: absolute;
           top: 50%;
           left: 50%;
-          width: 80px;
-          height: 80px;
+          width: 82px;
+          height: 82px;
           display: grid;
           place-items: center;
           transform: translate(-50%, -50%);
-          border: 1px solid #333;
+          border: 1px solid rgba(255, 255, 255, 0.12);
           border-radius: 50%;
           background: #080808;
           color: #aaa;
           font-family: "SFMono-Regular", Consolas, monospace;
-          font-size: 10px;
+          font-size: 9px;
         }
 
-        /* FOOTER */
+        /* ======================================================
+           FOOTER
+        ====================================================== */
 
-        .footer {
-          padding: 20px 24px 30px;
+        .site-footer {
+          position: relative;
+          z-index: 2;
+          padding: 25px 24px 32px;
           border-top: 1px solid var(--line);
-          color: #444;
+          color: #424242;
           font-family: "SFMono-Regular", Consolas, monospace;
           font-size: 7px;
         }
 
         .footer-top,
         .footer-bottom {
-          width: min(1120px, 100%);
-          margin: 0 auto;
           display: flex;
           align-items: center;
           justify-content: space-between;
+          gap: 25px;
         }
 
         .footer-top {
-          padding-bottom: 22px;
+          padding-bottom: 23px;
           border-bottom: 1px solid var(--line);
         }
 
-        .footer-logo {
+        .footer-brand {
           display: flex;
           align-items: center;
           gap: 9px;
           color: #777;
         }
 
-        .footer-logo .logo-mark {
+        .footer-brand .logo-mark {
           transform: scale(0.7);
         }
 
@@ -3059,53 +3635,84 @@ export default function Home() {
           padding-top: 22px;
         }
 
-        .footer-bottom div {
+        .footer-bottom > div {
           display: flex;
-          gap: 25px;
+          gap: 27px;
         }
 
         .footer-bottom a:hover {
           color: #aaa;
         }
 
-        /* ANIMATIONS */
+        /* ======================================================
+           ANIMATIONS
+        ====================================================== */
 
-        @keyframes blink {
+        @keyframes dashboardTextIn {
+          from {
+            opacity: 0;
+            transform: translateY(5px);
+          }
+
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        @keyframes statusPulse {
           0%,
           100% {
-            opacity: 0.35;
+            opacity: 0.3;
+            transform: scale(0.85);
           }
 
           50% {
             opacity: 1;
+            transform: scale(1.2);
           }
         }
 
         @keyframes scrollLine {
           0% {
-            transform: translateY(-20px);
+            transform: translateY(-22px);
           }
 
           100% {
-            transform: translateY(65px);
+            transform: translateY(68px);
           }
         }
 
-        @keyframes chartFloat {
+        @keyframes chartPulse {
           0%,
           100% {
-            transform: translateY(0);
+            transform: scale(1);
+            opacity: 0.6;
           }
 
           50% {
-            transform: translateY(-4px);
+            transform: scale(1.45);
+            opacity: 1;
           }
         }
 
-        @keyframes pulseData {
+        @keyframes barBreathe {
           0%,
           100% {
-            transform: scaleY(0.3);
+            transform: scaleY(0.82);
+            opacity: 0.6;
+          }
+
+          50% {
+            transform: scaleY(1);
+            opacity: 1;
+          }
+        }
+
+        @keyframes integrityPulse {
+          0%,
+          100% {
+            transform: scaleY(0.35);
             opacity: 0.3;
           }
 
@@ -3115,7 +3722,20 @@ export default function Home() {
           }
         }
 
-        @keyframes orbitSpin {
+        @keyframes auraBreathe {
+          0%,
+          100% {
+            transform: scale(0.9);
+            opacity: 0.45;
+          }
+
+          50% {
+            transform: scale(1.08);
+            opacity: 0.75;
+          }
+        }
+
+        @keyframes mapRotate {
           from {
             transform: translate(-50%, -50%) rotate(0deg);
           }
@@ -3125,7 +3745,7 @@ export default function Home() {
           }
         }
 
-        @keyframes orbitSpinReverse {
+        @keyframes mapRotateReverse {
           from {
             transform: translate(-50%, -50%) rotate(360deg);
           }
@@ -3135,7 +3755,29 @@ export default function Home() {
           }
         }
 
-        @keyframes scan {
+        @keyframes invoiceFloat {
+          0%,
+          100% {
+            margin-top: 0;
+          }
+
+          50% {
+            margin-top: -5px;
+          }
+        }
+
+        @keyframes gridPulse {
+          0%,
+          100% {
+            background-color: rgba(255, 255, 255, 0.012);
+          }
+
+          50% {
+            background-color: rgba(255, 255, 255, 0.03);
+          }
+        }
+
+        @keyframes scannerMove {
           0% {
             transform: translateY(0);
             opacity: 0;
@@ -3150,25 +3792,25 @@ export default function Home() {
           }
 
           100% {
-            transform: translateY(280px);
+            transform: translateY(290px);
             opacity: 0;
           }
         }
 
-        @keyframes progressLine {
+        @keyframes progressTravel {
           0% {
-            transform: translateX(-100%);
+            transform: translateX(-120%);
           }
 
           100% {
-            transform: translateX(100%);
+            transform: translateX(400%);
           }
         }
 
-        @keyframes nodeAppear {
+        @keyframes stepAppear {
           from {
             opacity: 0;
-            transform: translateY(10px);
+            transform: translateY(12px);
           }
 
           to {
@@ -3177,7 +3819,7 @@ export default function Home() {
           }
         }
 
-        @keyframes radarSweep {
+        @keyframes radarRotate {
           from {
             transform: rotate(0deg);
           }
@@ -3191,356 +3833,483 @@ export default function Home() {
           0%,
           100% {
             transform: scale(1);
-            opacity: 0.5;
+            opacity: 0.45;
           }
 
           50% {
-            transform: scale(1.7);
+            transform: scale(1.65);
             opacity: 1;
           }
         }
 
-        @media (max-width: 900px) {
-          .header-center {
+        /* ======================================================
+           TABLET
+        ====================================================== */
+
+        @media (max-width: 1000px) {
+          .header-status {
             display: none;
           }
 
-          .header-nav {
-            gap: 12px;
-          }
-
-          .manifesto-grid {
-            grid-template-columns: 45px 1fr;
-          }
-
-          .manifesto-copy {
-            grid-column: 2;
-            padding-top: 0;
+          .intro-layout,
+          .control-layout {
+            grid-template-columns: 1fr;
+            gap: 60px;
           }
 
           .module-layout {
             grid-template-columns: 1fr;
-            gap: 45px;
+            gap: 65px;
           }
 
-          .module-stage {
-            min-height: 440px;
-          }
-
-          .control-strip-inner {
-            grid-template-columns: 1fr;
-            gap: 50px;
+          .module-copy {
+            max-width: 700px;
           }
 
           .final-orbit {
-            right: -200px;
-            opacity: 0.45;
+            right: -220px;
+            opacity: 0.38;
           }
         }
 
+        /* ======================================================
+           MOBILE
+        ====================================================== */
+
         @media (max-width: 700px) {
-          .header {
+          .site-header {
             top: 10px;
             width: calc(100% - 20px);
           }
 
-          .header-inner {
+          .site-header-inner {
             height: 52px;
+            padding: 0 7px 0 13px;
           }
 
-          .header-nav {
+          .site-nav {
             position: absolute;
-            top: 62px;
+            top: 61px;
             left: 0;
             right: 0;
             display: none;
             flex-direction: column;
             align-items: stretch;
-            padding: 16px;
+            gap: 0;
+            padding: 13px 15px;
             border: 1px solid var(--line);
             border-radius: 18px;
-            background: rgba(7, 7, 7, 0.95);
+            background: rgba(10, 10, 10, 0.94);
             backdrop-filter: blur(25px);
           }
 
-          .header-nav.open {
+          .site-nav.open {
             display: flex;
           }
 
-          .header-nav a {
-            padding: 10px 4px;
+          .site-nav a {
+            padding: 13px 4px;
+          }
+
+          .nav-cta {
+            justify-content: space-between;
+            padding: 11px 13px !important;
+            margin-top: 5px;
           }
 
           .menu-button {
-            width: 40px;
-            height: 40px;
-            display: flex;
+            width: 38px;
+            height: 38px;
             margin-left: auto;
+            display: flex;
             align-items: center;
             justify-content: center;
             flex-direction: column;
             gap: 5px;
             border: 0;
+            border-radius: 50%;
             background: transparent;
+            cursor: pointer;
           }
 
           .menu-button span {
             width: 15px;
             height: 1px;
             background: #aaa;
+            transition: transform 0.25s ease;
+          }
+
+          .menu-button.open span:first-child {
+            transform: translateY(3px) rotate(45deg);
+          }
+
+          .menu-button.open span:last-child {
+            transform: translateY(-3px) rotate(-45deg);
           }
 
           .hero {
             min-height: auto;
-            padding-top: 130px;
-            padding-bottom: 60px;
+            padding: 125px 20px 70px;
           }
 
           .hero h1 {
-            font-size: clamp(62px, 19vw, 100px);
+            font-size: clamp(58px, 18vw, 100px);
+            letter-spacing: -0.08em;
           }
 
-          .hero-copy {
+          .hero-description {
             width: min(100%, 350px);
-            font-size: 12px;
+            margin-left: 0;
+            font-size: 13px;
           }
 
-          .hero-meta {
-            gap: 20px;
+          .hero-actions {
+            flex-wrap: wrap;
+            gap: 18px;
+            margin-left: 0;
           }
 
           .hero-screen {
             width: 100%;
-            margin-top: 55px;
+            margin-top: 65px;
           }
 
-          .dashboard-screen {
-            border-radius: 12px;
-          }
-
-          .screen-body {
-            grid-template-columns: 1fr;
-          }
-
-          .screen-sidebar {
-            display: none;
-          }
-
-          .screen-main {
-            padding: 15px;
-          }
-
-          .screen-metrics {
-            grid-template-columns: 1fr;
-          }
-
-          .screen-metrics > div:not(:first-child) {
-            display: none;
-          }
-
-          .screen-visual {
-            height: 145px;
-          }
-
-          .screen-bottom {
-            grid-template-columns: 1fr;
-          }
-
-          .screen-log {
-            display: none;
-          }
-
-          .screen-footer span:nth-child(2) {
-            display: none;
-          }
-
-          .manifesto {
-            min-height: auto;
-            padding: 90px 20px;
-          }
-
-          .manifesto-grid {
-            display: block;
-          }
-
-          .section-number {
-            margin-bottom: 25px;
-          }
-
-          .manifesto-title h2,
-          .system-header h2,
-          .control-intro h2 {
-            font-size: 50px;
-          }
-
-          .manifesto-copy {
+          .hero-meta {
             margin-top: 35px;
           }
 
-          .system-section {
-            min-height: auto;
-            padding: 80px 20px;
+          .hero-dashboard {
+            border-radius: 14px;
           }
 
-          .system-header {
+          .window-bar {
+            grid-template-columns: auto 1fr;
+          }
+
+          .window-url {
+            display: none;
+          }
+
+          .window-status {
+            justify-self: end;
+          }
+
+          .dashboard-content {
+            display: block;
+            min-height: 0;
+          }
+
+          .dashboard-sidebar {
+            display: none;
+          }
+
+          .dashboard-main {
+            padding: 18px;
+          }
+
+          .dashboard-topline h3 {
+            max-width: 210px;
+            font-size: 16px;
+          }
+
+          .dashboard-stats {
+            grid-template-columns: 1fr;
+          }
+
+          .dashboard-stats > div:not(:first-child) {
+            display: none;
+          }
+
+          .dashboard-chart {
+            height: 150px;
+          }
+
+          .dashboard-bottom-grid {
+            grid-template-columns: 1fr;
+          }
+
+          .dashboard-feed {
+            display: none;
+          }
+
+          .dashboard-footer {
+            gap: 10px;
+            overflow: hidden;
+            white-space: nowrap;
+          }
+
+          .dashboard-footer span {
+            overflow: hidden;
+            text-overflow: ellipsis;
+          }
+
+          .dashboard-footer span:nth-child(2) {
+            display: none;
+          }
+
+          .intro-section,
+          .architecture,
+          .control-section {
+            padding-left: 20px;
+            padding-right: 20px;
+          }
+
+          .intro-section {
+            padding-top: 100px;
+            padding-bottom: 100px;
+          }
+
+          .intro-layout {
+            margin-top: 55px;
+            gap: 45px;
+          }
+
+          .intro-title h2,
+          .architecture-header h2,
+          .control-title h2 {
+            font-size: 51px;
+          }
+
+          .intro-copy {
+            padding-top: 0;
+          }
+
+          .architecture {
+            padding-top: 100px;
+            padding-bottom: 90px;
+          }
+
+          .architecture-header {
             display: block;
           }
 
-          .system-description {
+          .architecture-header > p {
             margin-top: 30px;
           }
 
-          .orbit-system {
-            height: 410px;
+          .architecture-map-wrap {
+            margin-top: 60px;
+          }
+
+          .system-map {
             width: 100%;
+            height: 420px;
           }
 
-          .ring-one {
-            width: 170px;
-            height: 170px;
+          .ring-a {
+            width: 160px;
+            height: 160px;
           }
 
-          .ring-two {
-            width: 275px;
-            height: 275px;
+          .ring-b {
+            width: 260px;
+            height: 260px;
           }
 
-          .ring-three {
-            width: 360px;
-            height: 360px;
+          .ring-c {
+            width: 355px;
+            height: 355px;
           }
 
-          .orbit-node {
-            width: 105px;
+          .map-node {
+            width: 104px;
             min-height: 68px;
+            padding: 11px;
           }
 
-          .node-title {
+          .map-node strong {
             font-size: 8px;
           }
 
-          .system-footer {
-            width: 100%;
-            flex-wrap: wrap;
-            gap: 10px;
+          .map-node small {
+            font-size: 5px;
+          }
+
+          .architecture-footer {
+            grid-template-columns: 1fr;
+            gap: 9px;
+          }
+
+          .architecture-footer strong {
+            text-align: left;
+          }
+
+          .architecture-footer span:last-child {
+            text-align: left;
           }
 
           .module-section {
             min-height: auto;
-            padding: 80px 20px;
+            padding: 85px 20px;
           }
 
           .module-layout {
-            margin-top: 50px;
-            margin-bottom: 50px;
+            margin-top: 52px;
+            margin-bottom: 58px;
+            gap: 48px;
           }
 
           .module-copy h2 {
-            font-size: 54px;
+            font-size: 51px;
           }
 
-          .module-stage {
-            min-height: 400px;
+          .module-copy > p {
+            font-size: 13px;
           }
 
-          .sales-visual {
-            padding: 25px;
-            gap: 10px;
+          .visual-card {
+            min-height: 430px;
+            border-radius: 17px;
           }
 
-          .invoice-stack {
+          .sales-card {
+            display: flex;
+            flex-direction: column;
+            padding: 42px 24px;
+            gap: 25px;
+          }
+
+          .sales-stack {
             transform: scale(0.78);
+            transform-origin: top center;
+            width: 285px;
+            height: 280px;
+            margin-bottom: -50px;
           }
 
-          .visual-side-data {
-            transform: scale(0.8);
+          .sales-flow {
+            width: 100%;
+            border-left: 0;
+            border-top: 1px solid var(--line);
+            padding-left: 0;
+            padding-top: 22px;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
           }
 
-          .warehouse-visual {
-            padding: 30px;
+          .sales-flow > div {
+            padding: 0 8px 0 0;
+          }
+
+          .sales-flow > div:not(:last-child)::after {
+            display: none;
+          }
+
+          .inventory-card {
             grid-template-columns: 1fr;
+            padding: 28px;
+            gap: 24px;
           }
 
-          .warehouse-grid {
+          .inventory-grid {
             gap: 3px;
           }
 
-          .warehouse-scan {
-            height: 180px;
+          .inventory-scanner {
+            height: 170px;
           }
 
-          .warehouse-stats {
-            margin-top: 10px;
+          .inventory-stats {
+            margin-top: 0;
           }
 
-          .procurement-visual {
-            padding: 35px 15px;
+          .inventory-stats div {
+            padding-top: 14px;
           }
 
-          .procurement-chain {
-            gap: 2px;
+          .procurement-card {
+            padding: 30px 20px;
           }
 
-          .procurement-step small,
+          .procurement-intro {
+            margin-bottom: 55px;
+          }
+
+          .procurement-intro strong {
+            font-size: 11px;
+          }
+
+          .procurement-step span,
           .procurement-step strong {
             font-size: 5px;
           }
 
-          .vendor-panel {
-            margin-top: 45px;
+          .vendor-card {
             grid-template-columns: 1fr;
+            margin-top: 55px;
           }
 
-          .vendor-panel div {
+          .vendor-card > div {
             border-right: 0;
             border-bottom: 1px solid var(--line);
           }
 
-          .risk-visual {
-            padding: 30px;
-            flex-direction: column;
-            gap: 30px;
+          .vendor-card > div:last-child {
+            border-bottom: 0;
           }
 
-          .radar {
+          .risk-card {
+            flex-direction: column;
+            gap: 35px;
+            padding: 35px 24px;
+          }
+
+          .risk-radar {
             width: 230px;
             height: 230px;
           }
 
-          .risk-panel {
+          .risk-info {
             width: 100%;
           }
 
-          .module-progress {
-            width: 100px;
+          .module-footer {
+            gap: 10px;
           }
 
-          .control-strip {
-            padding: 80px 20px;
+          .module-progress {
+            max-width: 95px;
+          }
+
+          .control-section {
+            padding-top: 100px;
+            padding-bottom: 100px;
+          }
+
+          .control-layout {
+            gap: 55px;
           }
 
           .stream-row {
-            grid-template-columns: 75px 1fr;
+            grid-template-columns: 76px 1fr;
             gap: 10px;
-            padding: 10px 0;
+            padding: 12px 0;
           }
 
-          .stream-row i {
+          .stream-row > i {
             display: none;
           }
 
-          .stream-row strong,
-          .stream-row em {
+          .stream-row strong {
             grid-column: 2;
           }
 
-          .final {
+          .stream-row em {
+            grid-column: 2;
+            text-align: left;
+          }
+
+          .final-section {
             min-height: 650px;
-            padding: 90px 20px;
+            padding: 100px 20px;
           }
 
           .final-content h2 {
-            font-size: 70px;
+            font-size: 72px;
+          }
+
+          .final-content p {
+            max-width: 320px;
           }
 
           .final-orbit {
@@ -3548,182 +4317,142 @@ export default function Home() {
             opacity: 0.3;
           }
 
-          .footer {
+          .site-footer {
             padding-left: 20px;
             padding-right: 20px;
           }
 
-          .footer-top {
+          .footer-top,
+          .footer-bottom {
             align-items: flex-start;
             flex-direction: column;
-            gap: 14px;
           }
 
-          .footer-bottom {
+          .footer-bottom > div {
             gap: 20px;
-            align-items: flex-start;
-            flex-direction: column;
           }
         }
 
-        /* FINAL MOBILE POLISH — desktop layout remains unchanged */
-        @media (max-width: 700px) {
-          .hero-content,
-          .hero-bottom,
-          .manifesto-grid,
-          .system-header,
-          .system-footer,
-          .module-section,
-          .control-strip-inner,
-          .final-content,
-          .footer-top,
-          .footer-bottom {
-            width: 100%;
-            max-width: 100%;
-          }
+        /* ======================================================
+           SMALL MOBILE
+        ====================================================== */
 
+        @media (max-width: 420px) {
           .hero {
-            overflow: hidden;
+            padding-left: 16px;
+            padding-right: 16px;
           }
 
           .hero h1 {
-            max-width: 100%;
-            word-break: normal;
+            font-size: 54px;
           }
 
-          .hero-copy {
-            margin-left: 0;
+          .hero-actions {
+            align-items: flex-start;
+            flex-direction: column;
           }
 
           .hero-meta {
-            flex-wrap: wrap;
-            margin-left: 0;
+            font-size: 6px;
           }
 
-          .hero-screen {
-            max-width: 100%;
-            overflow: visible;
+          .hero-scroll span {
+            font-size: 6px;
           }
 
-          .screen-wrap {
-            width: 100%;
+          .intro-section,
+          .architecture,
+          .control-section {
+            padding-left: 16px;
+            padding-right: 16px;
           }
 
-          .dashboard-screen {
-            width: 100%;
+          .intro-title h2,
+          .architecture-header h2,
+          .control-title h2 {
+            font-size: 45px;
           }
 
-          .screen-top {
-            grid-template-columns: 1fr auto;
+          .system-map {
+            height: 360px;
           }
 
-          .screen-path {
-            display: none;
+          .ring-a {
+            width: 135px;
+            height: 135px;
           }
 
-          .screen-live {
-            grid-column: 2;
+          .ring-b {
+            width: 220px;
+            height: 220px;
           }
 
-          .screen-heading h3 {
-            max-width: 210px;
-            font-size: 16px;
+          .ring-c {
+            width: 300px;
+            height: 300px;
           }
 
-          .screen-metrics {
-            grid-template-columns: 1fr;
+          .map-node {
+            width: 92px;
+            min-height: 61px;
           }
 
-          .screen-metrics > div:not(:first-child) {
-            display: none;
-          }
-
-          .screen-footer {
-            overflow: hidden;
-            white-space: nowrap;
-          }
-
-          .screen-footer span {
-            overflow: hidden;
-            text-overflow: ellipsis;
-          }
-
-          .module-top,
-          .module-bottom {
-            gap: 12px;
-          }
-
-          .module-top span:last-child,
-          .module-bottom span:last-child {
-            flex-shrink: 0;
-          }
-
-          .module-copy {
-            min-width: 0;
+          .module-section {
+            padding-left: 16px;
+            padding-right: 16px;
           }
 
           .module-copy h2 {
-            max-width: 100%;
+            font-size: 45px;
           }
 
-          .module-stage {
-            width: 100%;
-            overflow: hidden;
+          .visual-card {
+            min-height: 400px;
           }
 
-          .sales-visual,
-          .warehouse-visual,
-          .procurement-visual,
-          .risk-visual {
-            width: 100%;
-            max-width: 100%;
+          .sales-stack {
+            transform: scale(0.68);
+            margin-top: -10px;
+            margin-bottom: -65px;
           }
 
-          .invoice-stack {
-            max-width: 100%;
+          .risk-radar {
+            width: 205px;
+            height: 205px;
           }
 
-          .invoice-card {
-            max-width: 100%;
-          }
-
-          .warehouse-stats {
-            width: 100%;
-          }
-
-          .control-stream,
-          .stream-row {
-            width: 100%;
-            min-width: 0;
-          }
-
-          .stream-row strong,
-          .stream-row em {
-            min-width: 0;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-          }
-
-          .final-content {
-            position: relative;
-            z-index: 3;
+          .final-section {
+            padding-left: 16px;
+            padding-right: 16px;
           }
 
           .final-content h2 {
-            max-width: 100%;
-            word-break: normal;
+            font-size: 61px;
           }
         }
 
+        /* ======================================================
+           REDUCED MOTION
+        ====================================================== */
+
         @media (prefers-reduced-motion: reduce) {
+          html {
+            scroll-behavior: auto;
+          }
+
           *,
           *::before,
           *::after {
-            scroll-behavior: auto !important;
             animation-duration: 0.01ms !important;
             animation-iteration-count: 1 !important;
             transition-duration: 0.01ms !important;
+          }
+
+          [data-reveal],
+          .hero-screen[data-reveal],
+          .procurement-step {
+            opacity: 1 !important;
+            transform: none !important;
           }
         }
       `}</style>
