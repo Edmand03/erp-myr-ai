@@ -1,11 +1,17 @@
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
-import { db } from "./prisma"; // Or "../../lib/prisma" depending on folder depth
 import { nextCookies } from "better-auth/next-js";
+import { db } from "./prisma";
+
+const trustedOrigins = [
+  "http://localhost:3000",
+  process.env.BETTER_AUTH_URL,
+].filter(Boolean) as string[];
 
 export const auth = betterAuth({
   database: prismaAdapter(db, {
     provider: "postgresql",
+
     //@ts-ignore
     modelMapping: {
       user: "User",
@@ -14,28 +20,20 @@ export const auth = betterAuth({
       verification: "Verification",
     },
   }),
-  // 💡 Tell the backend server exactly where it is being hosted:
+
   baseURL: process.env.BETTER_AUTH_URL,
+
+  trustedOrigins,
+
   emailAndPassword: {
     enabled: true,
   },
+
   plugins: [nextCookies()],
+
   session: {
-    cookieCache: { enabled: true },
-  },
-  sessionToken: {
-    cookieName: "session_token",
-    // Try setting this to your tunnel domain if possible,
-    // or leave undefined if it defaults correctly.
-  },
-  cookies: {
-    sessionToken: {
-      name: "auth_session",
-      options: {
-        httpOnly: true,
-        secure: true, // Required for HTTPS tunnels
-        sameSite: "none", // This is key: 'none' allows the cookie across the tunnel
-      },
+    cookieCache: {
+      enabled: true,
     },
   },
 });
@@ -55,6 +53,7 @@ export async function getUserTenantRole(userId: string, tenantId: string) {
   if (!membership) return null;
 
   const roleName = membership.role.name.toUpperCase();
+
   return {
     roleName,
     isAdmin: roleName === "ADMIN" || roleName === "OWNER",

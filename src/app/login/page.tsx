@@ -28,43 +28,34 @@ export default function LoginPage() {
     setError("");
     setLoading(true);
 
-    try {
-      const result = await authClient.signIn.email({
+    await authClient.signIn.email(
+      {
         email: email.trim(),
         password,
         rememberMe: true,
-      });
+        callbackURL: "/dashboard-redirect",
+      },
+      {
+        onRequest: () => {
+          setLoading(true);
+        },
 
-      if (result.error) {
-        setError(
-          result.error.message ||
-            "Invalid email or password. Please try again.",
-        );
-        return;
-      }
+        onSuccess: () => {
+          router.replace("/dashboard-redirect");
+          router.refresh();
+        },
 
-      /*
-       * Better Auth has now created the session.
-       *
-       * Explicit navigation is more predictable here than
-       * relying on callbackURL to perform the App Router
-       * navigation for us.
-       */
-      router.replace("/dashboard-redirect");
+        onError: (ctx) => {
+          console.error("Better Auth login error:", ctx.error);
 
-      /*
-       * Tell Next.js to re-fetch server components so pages
-       * depending on the authenticated session immediately
-       * see the new session.
-       */
-      router.refresh();
-    } catch (err) {
-      console.error("Login error:", err);
+          setError(
+            ctx.error.message || "Invalid email or password. Please try again.",
+          );
 
-      setError("Unable to sign in right now. Please try again.");
-    } finally {
-      setLoading(false);
-    }
+          setLoading(false);
+        },
+      },
+    );
   };
 
   return (
