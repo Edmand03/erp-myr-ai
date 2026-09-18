@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { createAuthClient } from "better-auth/react";
 
 const authClient = createAuthClient({
-  baseURL: typeof window !== "undefined" ? window.location.origin : "",
+  baseURL: window.location.origin,
 });
 
 export default function LoginPage() {
