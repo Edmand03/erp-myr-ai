@@ -3,11 +3,6 @@ import { prismaAdapter } from "better-auth/adapters/prisma";
 import { nextCookies } from "better-auth/next-js";
 import { db } from "./prisma";
 
-const trustedOrigins = [
-  "http://localhost:3000",
-  process.env.BETTER_AUTH_URL,
-].filter(Boolean) as string[];
-
 export const auth = betterAuth({
   database: prismaAdapter(db, {
     provider: "postgresql",
@@ -23,7 +18,9 @@ export const auth = betterAuth({
 
   baseURL: process.env.BETTER_AUTH_URL,
 
-  trustedOrigins,
+  trustedOrigins: ["http://localhost:3000", process.env.BETTER_AUTH_URL].filter(
+    Boolean,
+  ) as string[],
 
   emailAndPassword: {
     enabled: true,

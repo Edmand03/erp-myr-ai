@@ -28,34 +28,30 @@ export default function LoginPage() {
     setError("");
     setLoading(true);
 
-    await authClient.signIn.email(
-      {
+    try {
+      const result = await authClient.signIn.email({
         email: email.trim(),
         password,
         rememberMe: true,
-        callbackURL: "/dashboard-redirect",
-      },
-      {
-        onRequest: () => {
-          setLoading(true);
-        },
+      });
 
-        onSuccess: () => {
-          router.replace("/dashboard-redirect");
-          router.refresh();
-        },
+      console.log("[login] result:", result);
 
-        onError: (ctx) => {
-          console.error("Better Auth login error:", ctx.error);
+      if (result.error) {
+        setError(result.error.message || "Invalid email or password.");
+        return;
+      }
 
-          setError(
-            ctx.error.message || "Invalid email or password. Please try again.",
-          );
+      console.log("[login] Authentication successful, redirecting...");
 
-          setLoading(false);
-        },
-      },
-    );
+      window.location.assign("/dashboard-redirect");
+    } catch (error) {
+      console.error("[login] error:", error);
+
+      setError("Unable to sign in right now. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

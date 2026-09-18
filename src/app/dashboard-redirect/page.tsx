@@ -1,29 +1,63 @@
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { PrismaClient } from "@prisma/client";
+import { db } from "@/lib/prisma";
 
-const db = new PrismaClient();
+export const dynamic = "force-dynamic";
 
 export default async function DashboardRedirectPage() {
+  const requestHeaders = await headers();
+
   const session = await auth.api.getSession({
-    headers: await headers(),
+    headers: requestHeaders,
+    query: {
+      // Force Better Auth to verify the real session
+      // instead of relying on the cookie cache.
+      disableCookieCache: true,
+    },
   });
 
-  if (!session || !session.user) {
+  console.log(
+    "[dashboard-redirect] session:",
+    session
+      ? {
+          userId: session.user.id,
+          email: session.user.email,
+        }
+      : null,
+  );
+
+  if (!session?.user) {
+    console.log("[dashboard-redirect] No session -> /login");
+
     redirect("/login");
   }
 
-  // Look up what tenant workspace this user belongs to
   const membership = await db.tenantMember.findFirst({
-    where: { userId: session.user.id },
-    include: { tenant: true },
+    where: {
+      userId: session.user.id,
+      isActive: true,
+    },
+    include: {
+      tenant: true,
+    },
   });
 
+  console.log(
+    "[dashboard-redirect] membership:",
+    membership
+      ? {
+          tenantId: membership.tenantId,
+          tenantSlug: membership.tenant.slug,
+        }
+      : null,
+  );
+
   if (!membership) {
+    console.log("[dashboard-redirect] No workspace -> /register");
+
     redirect("/register?error=no-workspace");
   }
 
-  // Send them straight to their distinct URL workspace route!
   redirect(`/v1/${membership.tenant.slug}/dashboard`);
 }
