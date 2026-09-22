@@ -270,808 +270,636 @@ export default async function DashboardContent({
   return (
     <section className="dashboard-content">
       <style>{`
-        * {
-          box-sizing: border-box;
-        }
+        * { box-sizing: border-box; }
 
         .dashboard-content {
           width: 100%;
-          color: #f8fafc;
+          min-width: 0;
+          color: #f5f5f7;
+          font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
         }
 
-        /*
-         * ─────────────────────────────
-         * KPI CARDS
-         * ─────────────────────────────
-         */
+        .dashboard-content a { color: inherit; }
+
+        /* ======================================================
+           DESKTOP-FIRST HERO LANGUAGE
+           Same visual direction as the animated hero, but with
+           application-sized typography that is actually readable.
+        ====================================================== */
 
         .metric-grid {
           display: grid;
           grid-template-columns: repeat(4, minmax(0, 1fr));
-          gap: 14px;
-          margin-bottom: 20px;
+          gap: 16px;
+          margin-bottom: 22px;
+        }
+
+        .metric-card,
+        .ar-card,
+        .panel {
+          position: relative;
+          overflow: hidden;
+          border: 1px solid rgba(255, 255, 255, 0.09);
+          background:
+            linear-gradient(145deg, rgba(19, 19, 19, 0.98), rgba(7, 7, 7, 0.98));
+          box-shadow:
+            0 24px 55px rgba(0, 0, 0, 0.22),
+            inset 0 1px rgba(255, 255, 255, 0.025);
         }
 
         .metric-card {
-          position: relative;
-          overflow: hidden;
-
-          min-height: 148px;
-          padding: 20px;
-
-          border: 1px solid rgba(148, 163, 184, 0.12);
+          min-height: 172px;
+          padding: 24px;
           border-radius: 16px;
-
-          background:
-            linear-gradient(
-              145deg,
-              rgba(15, 23, 42, 0.88),
-              rgba(7, 12, 24, 0.92)
-            );
-
-          box-shadow:
-            0 10px 30px rgba(0, 0, 0, 0.14),
-            inset 0 1px rgba(255, 255, 255, 0.025);
-
-          transition:
-            transform 180ms ease,
-            border-color 180ms ease;
+          transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1),
+            border-color 220ms ease,
+            background 220ms ease;
         }
 
         .metric-card:hover {
-          transform: translateY(-2px);
-          border-color: rgba(148, 163, 184, 0.22);
+          transform: translateY(-3px);
+          border-color: rgba(255, 255, 255, 0.16);
+          background:
+            linear-gradient(145deg, rgba(24, 24, 24, 0.99), rgba(8, 8, 8, 0.99));
+        }
+
+        .metric-card::before {
+          content: "";
+          position: absolute;
+          top: 0;
+          left: 24px;
+          right: 24px;
+          height: 1px;
+          background: var(--metric-color);
+          opacity: 0.45;
         }
 
         .metric-card::after {
           content: "";
-
           position: absolute;
           right: -45px;
-          bottom: -55px;
-
-          width: 130px;
-          height: 130px;
-
+          bottom: -65px;
+          width: 160px;
+          height: 160px;
           border-radius: 50%;
-
-          background: var(--metric-glow);
-
-          filter: blur(50px);
-          opacity: 0.12;
-
+          background: var(--metric-color);
+          filter: blur(70px);
+          opacity: 0.055;
           pointer-events: none;
         }
 
-        .metric-green {
-          --metric-glow: #34d399;
-        }
-
-        .metric-red {
-          --metric-glow: #fb7185;
-        }
-
-        .metric-blue {
-          --metric-glow: #38bdf8;
-        }
-
-        .metric-amber {
-          --metric-glow: #f59e0b;
-        }
+        .metric-green { --metric-color: #b7ff3c; }
+        .metric-red { --metric-color: #bdbdbd; }
+        .metric-blue { --metric-color: #d0d0d0; }
+        .metric-amber { --metric-color: #b7ff3c; }
 
         .metric-top {
           display: flex;
           align-items: center;
           justify-content: space-between;
-
-          margin-bottom: 15px;
+          gap: 12px;
+          margin-bottom: 27px;
         }
 
         .metric-label {
-          color: #64748b;
-
-          font-size: 10px;
-          font-weight: 750;
+          color: #9b9b9b;
+          font-family: "SFMono-Regular", Consolas, monospace;
+          font-size: 12px;
+          font-weight: 500;
           letter-spacing: 0.08em;
           text-transform: uppercase;
         }
 
         .metric-symbol {
-          width: 28px;
-          height: 28px;
-
-          display: flex;
-          align-items: center;
-          justify-content: center;
-
+          width: 32px;
+          height: 32px;
+          display: grid;
+          place-items: center;
+          border: 1px solid rgba(255, 255, 255, 0.1);
           border-radius: 8px;
-
-          background: rgba(148, 163, 184, 0.055);
-          border: 1px solid rgba(148, 163, 184, 0.08);
-
-          color: #94a3b8;
-          font-size: 12px;
+          background: rgba(255, 255, 255, 0.025);
+          color: #999;
+          font-family: "SFMono-Regular", Consolas, monospace;
+          font-size: 13px;
         }
 
         .metric-value {
           position: relative;
           z-index: 1;
-
           display: block;
-
           overflow: hidden;
-          text-overflow: ellipsis;
-
           color: var(--metric-color);
-
-          font-family:
-            "SFMono-Regular",
-            Consolas,
-            "Liberation Mono",
-            monospace;
-
-          font-size: clamp(20px, 2vw, 27px);
-          font-weight: 800;
-          letter-spacing: -0.04em;
-
+          font-family: "SFMono-Regular", Consolas, monospace;
+          font-size: clamp(27px, 2.2vw, 38px);
+          font-weight: 400;
+          letter-spacing: -0.045em;
+          line-height: 1.05;
+          text-overflow: ellipsis;
           white-space: nowrap;
         }
 
         .metric-description {
           display: block;
-
-          margin-top: 7px;
-
-          color: #475569;
-
-          font-size: 11px;
+          margin-top: 11px;
+          color: #737373;
+          font-family: "SFMono-Regular", Consolas, monospace;
+          font-size: 12px;
+          line-height: 1.4;
         }
 
-        /*
-         * ─────────────────────────────
-         * AR OVERVIEW
-         * ─────────────────────────────
-         */
+        /* AR AGING */
 
         .ar-card {
-          margin-bottom: 24px;
-
-          padding: 20px;
-
-          border: 1px solid rgba(148, 163, 184, 0.11);
+          margin-bottom: 22px;
+          padding: 24px;
           border-radius: 16px;
-
-          background:
-            linear-gradient(
-              145deg,
-              rgba(15, 23, 42, 0.78),
-              rgba(7, 12, 24, 0.9)
-            );
-
-          box-shadow:
-            0 10px 30px rgba(0, 0, 0, 0.12);
         }
 
         .ar-header {
           display: flex;
           align-items: center;
           justify-content: space-between;
-
           gap: 15px;
-
-          margin-bottom: 16px;
+          margin-bottom: 18px;
         }
 
         .ar-title {
           display: flex;
           align-items: center;
-          gap: 9px;
+          gap: 10px;
         }
 
         .ar-title-mark {
           width: 7px;
           height: 7px;
-
           border-radius: 50%;
-
-          background: #f59e0b;
-
-          box-shadow:
-            0 0 12px rgba(245, 158, 11, 0.7);
+          background: #b7ff3c;
+          box-shadow: 0 0 12px rgba(183, 255, 60, 0.6);
         }
 
         .ar-title h3 {
           margin: 0;
-
-          color: #e2e8f0;
-
-          font-size: 13px;
-          font-weight: 750;
+          color: #dedede;
+          font-size: 17px;
+          font-weight: 500;
+          letter-spacing: -0.01em;
         }
 
         .ar-live {
           display: inline-flex;
           align-items: center;
-          gap: 6px;
-
-          color: #64748b;
-
-          font-size: 10px;
-          font-weight: 650;
+          gap: 7px;
+          color: #777;
+          font-family: "SFMono-Regular", Consolas, monospace;
+          font-size: 11px;
         }
 
         .ar-live-dot {
-          width: 5px;
-          height: 5px;
-
+          width: 6px;
+          height: 6px;
           border-radius: 50%;
-
-          background: #34d399;
+          background: #b7ff3c;
+          box-shadow: 0 0 8px rgba(183, 255, 60, 0.55);
         }
 
         .ar-grid {
           display: grid;
           grid-template-columns: repeat(4, minmax(0, 1fr));
-          gap: 8px;
+          gap: 10px;
         }
 
         .ar-bucket {
           position: relative;
-
           min-width: 0;
-
-          padding: 14px;
-
-          border: 1px solid rgba(148, 163, 184, 0.08);
-          border-radius: 11px;
-
-          background: rgba(3, 7, 18, 0.45);
-
+          padding: 18px;
           overflow: hidden;
+          border: 1px solid rgba(255, 255, 255, 0.065);
+          border-radius: 10px;
+          background: rgba(255, 255, 255, 0.018);
         }
 
         .ar-bucket::before {
           content: "";
-
           position: absolute;
           top: 0;
           left: 0;
           right: 0;
-
           height: 1px;
-
           background: var(--bucket-color);
-          opacity: 0.5;
+          opacity: 0.45;
         }
 
         .ar-bucket-label {
           display: block;
-
-          margin-bottom: 7px;
-
-          color: #64748b;
-
-          font-size: 9px;
-          font-weight: 700;
-          letter-spacing: 0.05em;
+          margin-bottom: 11px;
+          color: #888;
+          font-family: "SFMono-Regular", Consolas, monospace;
+          font-size: 11px;
+          letter-spacing: 0.06em;
           text-transform: uppercase;
         }
 
         .ar-bucket-value {
           display: block;
-
           overflow: hidden;
-          text-overflow: ellipsis;
-
           color: var(--bucket-color);
-
-          font-family:
-            "SFMono-Regular",
-            Consolas,
-            monospace;
-
-          font-size: 15px;
-          font-weight: 750;
-
+          font-family: "SFMono-Regular", Consolas, monospace;
+          font-size: 20px;
+          font-weight: 400;
+          line-height: 1.2;
+          text-overflow: ellipsis;
           white-space: nowrap;
         }
 
-        /*
-         * ─────────────────────────────
-         * MAIN GRID
-         * ─────────────────────────────
-         */
+        /* MAIN GRID */
 
         .main-grid {
           display: grid;
-          grid-template-columns: minmax(0, 1.15fr) minmax(360px, 0.85fr);
+          grid-template-columns: minmax(0, 1.15fr) minmax(380px, 0.85fr);
           gap: 20px;
         }
 
         .panel {
           min-width: 0;
-
-          border: 1px solid rgba(148, 163, 184, 0.11);
           border-radius: 16px;
-
-          background:
-            linear-gradient(
-              145deg,
-              rgba(15, 23, 42, 0.76),
-              rgba(7, 12, 24, 0.9)
-            );
-
-          overflow: hidden;
-
-          box-shadow:
-            0 10px 30px rgba(0, 0, 0, 0.12);
         }
 
         .panel-heading {
+          position: relative;
           display: flex;
           align-items: flex-end;
           justify-content: space-between;
-
           gap: 15px;
+          min-height: 78px;
+          padding: 23px 24px 17px;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.065);
+        }
 
-          padding: 19px 20px 15px;
+        .panel-heading::before {
+          content: "SYSTEM / MODULE";
+          position: absolute;
+          top: 15px;
+          right: 24px;
+          color: #3d3d3d;
+          font-family: "SFMono-Regular", Consolas, monospace;
+          font-size: 9px;
+          letter-spacing: 0.08em;
         }
 
         .panel-heading h2 {
           margin: 0;
-
-          color: #f8fafc;
-
-          font-size: 15px;
-          font-weight: 750;
-          letter-spacing: -0.02em;
+          color: #e5e5e5;
+          font-size: 18px;
+          font-weight: 500;
+          letter-spacing: -0.035em;
         }
 
         .panel-heading p {
-          margin: 4px 0 0;
-
-          color: #475569;
-
-          font-size: 10px;
+          margin: 5px 0 0;
+          color: #777;
+          font-family: "SFMono-Regular", Consolas, monospace;
+          font-size: 11px;
         }
 
-        /*
-         * ─────────────────────────────
-         * MODULES
-         * ─────────────────────────────
-         */
+        /* OPERATIONS */
 
         .module-grid {
           display: grid;
           grid-template-columns: repeat(2, minmax(0, 1fr));
           gap: 10px;
-
-          padding: 0 12px 12px;
+          padding: 12px;
         }
 
         .module {
           position: relative;
-
-          min-height: 172px;
-          padding: 17px;
-
+          min-height: 205px;
+          padding: 20px;
           display: flex;
           flex-direction: column;
           justify-content: space-between;
-
-          border: 1px solid rgba(148, 163, 184, 0.1);
-          border-radius: 13px;
-
-          background: rgba(3, 7, 18, 0.42);
-
+          overflow: hidden;
+          border: 1px solid rgba(255, 255, 255, 0.075);
+          border-radius: 12px;
+          background:
+            linear-gradient(145deg, rgba(20, 20, 20, 0.9), rgba(9, 9, 9, 0.94));
           text-decoration: none;
+          transition: transform 280ms cubic-bezier(0.22, 1, 0.36, 1),
+            border-color 220ms ease,
+            background 220ms ease,
+            box-shadow 220ms ease;
+        }
 
-          transition:
-            transform 180ms ease,
-            border-color 180ms ease,
-            background 180ms ease;
+        .module::before {
+          content: "";
+          position: absolute;
+          inset: 0;
+          pointer-events: none;
+          background: linear-gradient(
+            115deg,
+            transparent 0%,
+            rgba(255, 255, 255, 0.035) 46%,
+            transparent 60%
+          );
+          transform: translateX(-110%);
+          transition: transform 650ms cubic-bezier(0.22, 1, 0.36, 1);
         }
 
         .module:hover {
-          transform: translateY(-2px);
-
-          border-color: rgba(56, 189, 248, 0.28);
-
+          transform: translateY(-3px);
+          border-color: rgba(183, 255, 60, 0.2);
           background:
-            linear-gradient(
-              145deg,
-              rgba(14, 29, 48, 0.72),
-              rgba(3, 7, 18, 0.6)
-            );
+            linear-gradient(145deg, rgba(24, 24, 24, 0.96), rgba(10, 10, 10, 0.98));
+          box-shadow: 0 18px 40px rgba(0, 0, 0, 0.24);
         }
 
+        .module:hover::before { transform: translateX(110%); }
+
         .module:focus-visible {
-          outline: 2px solid #38bdf8;
-          outline-offset: 2px;
+          outline: 1px solid #b7ff3c;
+          outline-offset: 3px;
         }
 
         .module-top {
           display: flex;
           align-items: flex-start;
           justify-content: space-between;
+          gap: 10px;
         }
 
         .module-icon {
-          width: 38px;
-          height: 38px;
-
-          display: flex;
-          align-items: center;
-          justify-content: center;
-
-          border: 1px solid rgba(56, 189, 248, 0.13);
+          width: 42px;
+          height: 42px;
+          display: grid;
+          place-items: center;
+          border: 1px solid rgba(255, 255, 255, 0.1);
           border-radius: 10px;
+          background: rgba(255, 255, 255, 0.025);
+          color: #aaa;
+          font-family: "SFMono-Regular", Consolas, monospace;
+          font-size: 10px;
+          font-weight: 500;
+          letter-spacing: 0.03em;
+        }
 
-          background:
-            linear-gradient(
-              135deg,
-              rgba(56, 189, 248, 0.09),
-              rgba(99, 102, 241, 0.07)
-            );
-
-          color: #7dd3fc;
-
-          font-size: 14px;
-          font-weight: 800;
+        .module:hover .module-icon {
+          border-color: rgba(183, 255, 60, 0.2);
+          color: #b7ff3c;
         }
 
         .module-tag {
-          padding: 4px 7px;
-
-          border: 1px solid rgba(148, 163, 184, 0.09);
-          border-radius: 6px;
-
-          color: #475569;
-
-          font-size: 8px;
-          font-weight: 750;
-          letter-spacing: 0.05em;
+          padding: 5px 7px;
+          border: 1px solid rgba(255, 255, 255, 0.07);
+          border-radius: 5px;
+          color: #777;
+          font-family: "SFMono-Regular", Consolas, monospace;
+          font-size: 9px;
+          letter-spacing: 0.07em;
           text-transform: uppercase;
         }
 
         .module-name {
-          margin-top: 14px;
-
-          color: #e2e8f0;
-
-          font-size: 13px;
-          font-weight: 750;
+          margin-top: 18px;
+          color: #e0e0e0;
+          font-size: 17px;
+          font-weight: 500;
+          letter-spacing: -0.025em;
         }
 
         .module-description {
-          margin-top: 5px;
-
-          color: #475569;
-
-          font-size: 10px;
-          line-height: 1.55;
+          max-width: 300px;
+          margin-top: 8px;
+          color: #858585;
+          font-family: "SFMono-Regular", Consolas, monospace;
+          font-size: 12px;
+          line-height: 1.65;
         }
 
         .module-footer {
           display: flex;
           align-items: center;
           justify-content: space-between;
-
-          margin-top: 15px;
-          padding-top: 10px;
-
-          border-top: 1px solid rgba(148, 163, 184, 0.07);
-
-          color: #38bdf8;
-
-          font-size: 9px;
-          font-weight: 700;
+          gap: 10px;
+          margin-top: 19px;
+          padding-top: 12px;
+          border-top: 1px solid rgba(255, 255, 255, 0.055);
+          color: #777;
+          font-family: "SFMono-Regular", Consolas, monospace;
+          font-size: 11px;
         }
 
         .module-arrow {
-          font-size: 13px;
-
-          transition: transform 180ms ease;
+          color: #777;
+          font-size: 16px;
+          transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1), color 180ms ease;
         }
 
-        .module:hover .module-arrow {
-          transform: translateX(3px);
-        }
+        .module:hover .module-footer { color: #999; }
+        .module:hover .module-arrow { color: #b7ff3c; transform: translateX(4px); }
 
-        /*
-         * ─────────────────────────────
-         * ACTIVITY
-         * ─────────────────────────────
-         */
+        /* ACTIVITY */
 
-        .activity-list {
-          padding: 0 10px 10px;
-        }
+        .activity-list { padding: 0 12px 12px; }
 
         .activity {
           position: relative;
-
-          display: flex;
+          display: grid;
+          grid-template-columns: 40px minmax(0, 1fr) auto;
           align-items: center;
-
-          gap: 12px;
-
-          min-height: 72px;
-
-          padding: 11px 10px;
-
-          border-bottom: 1px solid rgba(148, 163, 184, 0.07);
+          gap: 13px;
+          min-height: 78px;
+          padding: 12px 10px;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.055);
+          transition: background 180ms ease;
         }
 
-        .activity:last-child {
-          border-bottom: 0;
-        }
+        .activity:last-child { border-bottom: 0; }
+        .activity:hover { background: rgba(255, 255, 255, 0.018); }
 
         .activity-marker {
-          position: relative;
-
-          width: 34px;
-          height: 34px;
-
-          flex: 0 0 auto;
-
-          display: flex;
-          align-items: center;
-          justify-content: center;
-
+          width: 38px;
+          height: 38px;
+          display: grid;
+          place-items: center;
           border-radius: 9px;
-
-          font-size: 9px;
-          font-weight: 800;
+          font-family: "SFMono-Regular", Consolas, monospace;
+          font-size: 10px;
+          font-weight: 500;
         }
 
         .activity-invoice {
-          background: rgba(52, 211, 153, 0.08);
-          border: 1px solid rgba(52, 211, 153, 0.14);
-          color: #34d399;
+          background: rgba(183, 255, 60, 0.045);
+          border: 1px solid rgba(183, 255, 60, 0.13);
+          color: #b7ff3c;
         }
 
         .activity-purchase {
-          background: rgba(251, 113, 133, 0.08);
-          border: 1px solid rgba(251, 113, 133, 0.14);
-          color: #fb7185;
+          background: rgba(255, 255, 255, 0.025);
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          color: #888;
         }
 
-        .activity-info {
-          min-width: 0;
-          flex: 1;
-        }
+        .activity-info { min-width: 0; }
 
         .activity-title-row {
           display: flex;
           align-items: center;
-          gap: 7px;
-
+          gap: 8px;
           min-width: 0;
         }
 
         .activity-title {
           overflow: hidden;
+          color: #d0d0d0;
+          font-family: "SFMono-Regular", Consolas, monospace;
+          font-size: 12px;
+          font-weight: 400;
           text-overflow: ellipsis;
           white-space: nowrap;
-
-          color: #cbd5e1;
-
-          font-family:
-            "SFMono-Regular",
-            Consolas,
-            monospace;
-
-          font-size: 10px;
-          font-weight: 700;
         }
 
         .activity-status {
-          padding: 2px 5px;
-
-          border-radius: 4px;
-
-          font-size: 7px;
-          font-weight: 750;
-          letter-spacing: 0.03em;
+          padding: 3px 6px;
+          border-radius: 3px;
+          font-family: "SFMono-Regular", Consolas, monospace;
+          font-size: 9px;
+          letter-spacing: 0.04em;
           text-transform: uppercase;
-
           white-space: nowrap;
         }
 
         .status-paid {
-          color: #34d399;
-          background: rgba(52, 211, 153, 0.08);
+          color: #b7ff3c;
+          background: rgba(183, 255, 60, 0.055);
         }
 
         .status-due {
-          color: #f59e0b;
-          background: rgba(245, 158, 11, 0.08);
+          color: #aaa;
+          background: rgba(255, 255, 255, 0.045);
         }
 
         .activity-description {
-          margin-top: 4px;
-
+          margin-top: 5px;
           overflow: hidden;
+          color: #777;
+          font-family: "SFMono-Regular", Consolas, monospace;
+          font-size: 11px;
           text-overflow: ellipsis;
           white-space: nowrap;
-
-          color: #475569;
-
-          font-size: 9px;
         }
 
         .activity-right {
           flex: 0 0 auto;
-
           display: flex;
           flex-direction: column;
           align-items: flex-end;
-
-          gap: 4px;
+          gap: 5px;
         }
 
         .activity-amount {
-          font-family:
-            "SFMono-Regular",
-            Consolas,
-            monospace;
-
-          font-size: 10px;
-          font-weight: 750;
+          font-family: "SFMono-Regular", Consolas, monospace;
+          font-size: 12px;
+          font-weight: 500;
         }
 
-        .amount-in {
-          color: #34d399;
-        }
-
-        .amount-out {
-          color: #fb7185;
-        }
+        .amount-in { color: #b7ff3c; }
+        .amount-out { color: #999; }
 
         .activity-time {
-          color: #334155;
-
-          font-size: 8px;
+          color: #666;
+          font-family: "SFMono-Regular", Consolas, monospace;
+          font-size: 10px;
         }
 
         .collect-button {
-          margin-top: 3px;
-
-          padding: 4px 7px;
-
-          border: 1px solid rgba(56, 189, 248, 0.15);
-          border-radius: 5px;
-
-          background: rgba(56, 189, 248, 0.07);
-
-          color: #38bdf8;
-
-          font-size: 8px;
-          font-weight: 700;
-
+          margin-top: 2px;
+          padding: 5px 7px;
+          border: 1px solid rgba(183, 255, 60, 0.13);
+          border-radius: 4px;
+          background: rgba(183, 255, 60, 0.045);
+          color: #b7ff3c;
+          font-family: "SFMono-Regular", Consolas, monospace;
+          font-size: 9px;
           text-decoration: none;
-
-          transition:
-            background 150ms ease,
-            border-color 150ms ease;
         }
 
-        .collect-button:hover {
-          background: rgba(56, 189, 248, 0.13);
-          border-color: rgba(56, 189, 248, 0.3);
-        }
-
-        /*
-         * ─────────────────────────────
-         * EMPTY STATE
-         * ─────────────────────────────
-         */
+        /* EMPTY / HEALTH */
 
         .empty-state {
-          min-height: 350px;
-
+          min-height: 320px;
           display: flex;
           flex-direction: column;
           align-items: center;
           justify-content: center;
-
-          padding: 40px 25px;
-
+          padding: 35px 25px;
           text-align: center;
         }
 
         .empty-icon {
-          width: 44px;
-          height: 44px;
-
-          display: flex;
-          align-items: center;
-          justify-content: center;
-
-          margin-bottom: 13px;
-
-          border: 1px solid rgba(56, 189, 248, 0.12);
-          border-radius: 12px;
-
-          background: rgba(56, 189, 248, 0.05);
-
-          color: #38bdf8;
-
-          font-size: 15px;
-          font-weight: 800;
+          width: 46px;
+          height: 46px;
+          display: grid;
+          place-items: center;
+          margin-bottom: 14px;
+          border: 1px solid rgba(183, 255, 60, 0.12);
+          border-radius: 11px;
+          background: rgba(183, 255, 60, 0.035);
+          color: #b7ff3c;
+          font-family: "SFMono-Regular", Consolas, monospace;
+          font-size: 17px;
         }
 
         .empty-title {
-          color: #cbd5e1;
-
-          font-size: 12px;
-          font-weight: 700;
+          color: #aaa;
+          font-size: 15px;
+          font-weight: 500;
         }
 
         .empty-description {
-          max-width: 250px;
-
-          margin-top: 5px;
-
-          color: #475569;
-
-          font-size: 10px;
-          line-height: 1.5;
+          max-width: 300px;
+          margin-top: 7px;
+          color: #777;
+          font-family: "SFMono-Regular", Consolas, monospace;
+          font-size: 11px;
+          line-height: 1.65;
         }
-
-        /*
-         * ─────────────────────────────
-         * FINANCIAL HEALTH
-         * ─────────────────────────────
-         */
 
         .health-bar {
           display: flex;
           align-items: center;
-          gap: 8px;
-
-          margin-top: 13px;
-          padding-top: 12px;
-
-          border-top: 1px solid rgba(148, 163, 184, 0.07);
+          gap: 10px;
+          margin-top: 18px;
+          padding: 15px 2px 0;
+          border-top: 1px solid rgba(255, 255, 255, 0.055);
         }
 
         .health-indicator {
           width: 7px;
           height: 7px;
-
+          flex: 0 0 auto;
           border-radius: 50%;
-
           background: var(--health-color);
           box-shadow: 0 0 10px var(--health-color);
         }
 
-        .health-positive {
-          --health-color: #34d399;
-        }
-
-        .health-negative {
-          --health-color: #fb7185;
-        }
-
-        .health-neutral {
-          --health-color: #64748b;
-        }
+        .health-positive { --health-color: #b7ff3c; }
+        .health-negative { --health-color: #aaa; }
+        .health-neutral { --health-color: #555; }
 
         .health-text {
-          color: #64748b;
-
-          font-size: 9px;
+          color: #777;
+          font-family: "SFMono-Regular", Consolas, monospace;
+          font-size: 11px;
+          line-height: 1.5;
         }
 
-        /*
-         * ─────────────────────────────
-         * RESPONSIVE
-         * ─────────────────────────────
-         */
+        .health-text strong {
+          color: #aaa;
+          font-weight: 500;
+        }
 
-        @media (max-width: 1100px) {
+        /* RESPONSIVE */
+
+        @media (max-width: 1200px) {
           .metric-grid {
             grid-template-columns: repeat(2, minmax(0, 1fr));
           }
@@ -1084,24 +912,21 @@ export default async function DashboardContent({
         @media (max-width: 720px) {
           .metric-grid {
             grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 9px;
+            gap: 10px;
           }
 
           .metric-card {
-            min-height: 130px;
-            padding: 15px;
+            min-height: 145px;
+            padding: 17px;
+            border-radius: 12px;
           }
 
-          .metric-value {
-            font-size: 18px;
-          }
-
-          .metric-description {
-            font-size: 9px;
-          }
+          .metric-label { font-size: 10px; }
+          .metric-value { font-size: 22px; }
 
           .ar-card {
-            padding: 15px;
+            padding: 17px;
+            border-radius: 12px;
           }
 
           .ar-grid {
@@ -1113,31 +938,22 @@ export default async function DashboardContent({
           }
 
           .module {
-            min-height: 150px;
+            min-height: 175px;
+          }
+
+          .activity {
+            grid-template-columns: 36px minmax(0, 1fr) auto;
+            gap: 10px;
           }
         }
 
         @media (max-width: 480px) {
           .metric-grid {
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: 1fr;
           }
 
           .metric-card {
-            padding: 13px;
-            border-radius: 12px;
-          }
-
-          .metric-label {
-            font-size: 8px;
-          }
-
-          .metric-value {
-            font-size: 16px;
-          }
-
-          .metric-symbol {
-            width: 24px;
-            height: 24px;
+            padding: 16px;
           }
 
           .ar-header {
@@ -1146,25 +962,30 @@ export default async function DashboardContent({
           }
 
           .activity {
-            align-items: flex-start;
+            align-items: start;
           }
 
           .activity-right {
             padding-top: 2px;
           }
 
-          .activity-amount {
-            font-size: 9px;
+          .health-bar {
+            align-items: flex-start;
+            flex-wrap: wrap;
           }
         }
 
         @media (prefers-reduced-motion: reduce) {
           .metric-card,
           .module,
+          .module::before,
           .module-arrow,
-          .collect-button {
-            transition: none;
+          .collect-button,
+          .activity {
+            transition: none !important;
           }
+
+          .module::before { display: none; }
         }
       `}</style>
 
@@ -1471,6 +1292,18 @@ function ModuleCard({
         <div className="module-name">{title}</div>
 
         <div className="module-description">{description}</div>
+
+        <div
+          style={{
+            marginTop: "9px",
+            color: "#303030",
+            fontFamily: '"SFMono-Regular", Consolas, monospace',
+            fontSize: "5px",
+            letterSpacing: "0.08em",
+          }}
+        >
+          READY / SYNCED
+        </div>
       </div>
 
       <div className="module-footer">

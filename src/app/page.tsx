@@ -220,7 +220,7 @@ function Counter({ value }: { value: number }) {
   return <>{display.toLocaleString()}</>;
 }
 
-function LogoMark() {
+export function LogoMark() {
   return (
     <span className="logo-mark">
       <i />
@@ -959,11 +959,14 @@ export default function Home() {
               Coming soon
               <span>→</span>
             </Link>
-
-            <a href="#systems" className="hero-secondary">
+            <a className="hero-secondary">
               Explore the system
               <span>↓</span>
             </a>
+            {/* <a href="#systems" className="hero-secondary">
+              Explore the system
+              <span>↓</span>
+            </a> */}
           </div>
         </div>
 
