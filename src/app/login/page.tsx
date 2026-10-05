@@ -30,8 +30,6 @@ export default function LoginPage() {
         rememberMe: true,
       });
 
-      window.location.href = "/dashboard";
-
       if (result.error) {
         setError(
           result.error.message || "Unable to sign in with those credentials.",
