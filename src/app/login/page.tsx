@@ -30,7 +30,7 @@ export default function LoginPage() {
         rememberMe: true,
       });
 
-      console.log("LOGIN RESULT:", result);
+      window.location.href = "/dashboard";
 
       if (result.error) {
         setError(

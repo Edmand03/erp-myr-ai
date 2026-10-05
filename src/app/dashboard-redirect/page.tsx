@@ -11,8 +11,6 @@ export default async function DashboardRedirectPage() {
   const session = await auth.api.getSession({
     headers: requestHeaders,
     query: {
-      // Force Better Auth to verify the real session
-      // instead of relying on the cookie cache.
       disableCookieCache: true,
     },
   });

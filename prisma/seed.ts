@@ -4,9 +4,6 @@ import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log("🌱 Starting baseline system seed data...");
-
-  // 1. Core Platform Permissions Checklist
   const permissionsData = [
     {
       id: "dashboard:read",
@@ -38,18 +35,16 @@ async function main() {
     });
   }
 
-  // 2. Primary Tenant initialization (Your Family Business Context)
   const tenant = await prisma.tenant.create({
     data: {
       name: "Family Electrical Contracting Sdn Bhd",
       slug: "family-electric",
-      sstNumber: "W10-1234-567890", // Placeholder Malaysian registration structure
+      sstNumber: "W10-1234-567890",
       companyRegNo: "202601XXXXXX",
       status: "ACTIVE",
     },
   });
 
-  // 3. Admin Role Generation for this specific Tenant
   const adminRole = await prisma.role.create({
     data: {
       tenantId: tenant.id,
@@ -59,7 +54,6 @@ async function main() {
     },
   });
 
-  // Link all generated permissions to this custom tenant role assignment
   const permissions = await prisma.permission.findMany();
   await prisma.rolePermission.createMany({
     data: permissions.map((p) => ({
