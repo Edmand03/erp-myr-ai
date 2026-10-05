@@ -8,6 +8,11 @@ export const dynamic = "force-dynamic";
 export default async function DashboardRedirectPage() {
   const requestHeaders = await headers();
 
+  console.log("=== AUTH DEBUG ===");
+  console.log("HOST:", requestHeaders.get("host"));
+  console.log("ORIGIN:", requestHeaders.get("origin"));
+  console.log("COOKIE:", requestHeaders.get("cookie"));
+
   const session = await auth.api.getSession({
     headers: requestHeaders,
     query: {
