@@ -15,8 +15,41 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
+  // const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
+  //   e.preventDefault();
+
+  //   if (loading) return;
+
+  //   setError("");
+  //   setLoading(true);
+
+  //   try {
+  //     const result = await authClient.signIn.email({
+  //       email: email.trim(),
+  //       password,
+  //       rememberMe: true,
+  //     });
+
+  //     if (result.error) {
+  //       setError(
+  //         result.error.message || "Unable to sign in with those credentials.",
+  //       );
+  //       return;
+  //     }
+
+  //     window.location.replace("/dashboard-redirect");
+  //   } catch (err) {
+  //     console.error("LOGIN ERROR:", err);
+
+  //     setError("Something went wrong. Please try again.");
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+
+    console.log("1. SUBMIT");
 
     if (loading) return;
 
@@ -24,22 +57,33 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
+      console.log("2. CALLING AUTH");
+
       const result = await authClient.signIn.email({
         email: email.trim(),
         password,
         rememberMe: true,
       });
 
-      if (result.error) {
+      console.log("3. AUTH RETURNED", result);
+      console.log("4. AUTH ERROR", result?.error);
+
+      if (result?.error) {
+        console.log("5. LOGIN ERROR");
+
         setError(
           result.error.message || "Unable to sign in with those credentials.",
         );
+
         return;
       }
 
+      console.log("6. LOGIN SUCCESS");
+      console.log("7. REDIRECTING");
+
       window.location.replace("/dashboard-redirect");
     } catch (err) {
-      console.error("LOGIN ERROR:", err);
+      console.error("8. LOGIN EXCEPTION", err);
 
       setError("Something went wrong. Please try again.");
     } finally {
