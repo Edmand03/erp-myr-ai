@@ -33,7 +33,7 @@ export default async function DashboardRedirectPage() {
   if (!session?.user) {
     console.log("[dashboard-redirect] No session -> /login");
 
-    redirect("/login");
+    // redirect("/login");
   }
 
   const membership = await db.tenantMember.findFirst({
