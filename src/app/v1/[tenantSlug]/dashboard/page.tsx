@@ -14,12 +14,16 @@ export default async function DashboardPage({
   params: Promise<{ tenantSlug: string }>;
 }) {
   const { tenantSlug } = await params;
+  const requestHeaders = await headers();
 
   const session = await auth.api.getSession({
-    headers: await headers(),
+    headers: requestHeaders,
+    query: {
+      disableCookieCache: true,
+    },
   });
 
-  if (!session) {
+  if (!session?.user) {
     redirect("/login");
   }
 
