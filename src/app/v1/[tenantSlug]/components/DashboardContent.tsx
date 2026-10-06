@@ -29,15 +29,16 @@ export default async function DashboardContent({
     headers: await headers(),
   });
 
-  if (!session) {
-    redirect("/login");
-  }
+  // if (!session) {
+  //   redirect("/login");
+  // }
 
+  //@ts-ignore
   const authCheck = await getUserTenantRole(session.user.id, tenantId);
 
-  if (!authCheck) {
-    redirect("/dashboard-redirect");
-  }
+  // if (!authCheck) {
+  //   redirect("/dashboard-redirect");
+  // }
 
   const tenant = await db.tenant.findUnique({
     where: {
