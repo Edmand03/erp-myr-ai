@@ -27,27 +27,27 @@ export default async function DashboardPage({
   //   redirect("/login");
   // }
 
-  const accessCheck = await db.tenantMember.findFirst({
-    where: {
-      //@ts-ignore
-      userId: session.user.id,
-      tenant: {
-        slug: tenantSlug,
-      },
-    },
-    include: {
-      tenant: {
-        select: {
-          id: true,
-          name: true,
-        },
-      },
-    },
-  });
+  // const accessCheck = await db.tenantMember.findFirst({
+  //   where: {
+  //     //@ts-ignore
+  //     userId: session.user.id,
+  //     tenant: {
+  //       slug: tenantSlug,
+  //     },
+  //   },
+  //   include: {
+  //     tenant: {
+  //       select: {
+  //         id: true,
+  //         name: true,
+  //       },
+  //     },
+  //   },
+  // });
 
-  if (!accessCheck) {
-    redirect("/dashboard-redirect");
-  }
+  // if (!accessCheck) {
+  //   redirect("/dashboard-redirect");
+  // }
 
   const { tenant } = accessCheck;
 
