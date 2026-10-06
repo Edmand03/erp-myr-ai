@@ -81,8 +81,7 @@ export default function LoginPage() {
       console.log("6. LOGIN SUCCESS");
       console.log("7. REDIRECTING");
 
-      // window.location.href = "/dashboard-redirect";
-      window.location.href = "/test";
+      window.location.href = "/dashboard-redirect";
     } catch (err) {
       console.error("8. LOGIN EXCEPTION", err);
 
