@@ -38,6 +38,7 @@ export default async function DashboardRedirectPage() {
 
   const membership = await db.tenantMember.findFirst({
     where: {
+      //@ts-ignore
       userId: session.user.id,
       isActive: true,
     },
