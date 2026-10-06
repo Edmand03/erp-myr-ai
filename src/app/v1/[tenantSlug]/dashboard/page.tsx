@@ -49,6 +49,7 @@ export default async function DashboardPage({
   //   redirect("/dashboard-redirect");
   // }
 
+  //@ts-ignore
   const { tenant } = accessCheck;
 
   //@ts-ignore
