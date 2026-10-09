@@ -1,6 +1,5 @@
 "use client";
 
-import { LogoMark } from "@/app/page";
 import {
   Bell,
   ChevronDown,
@@ -1019,11 +1018,6 @@ export default function TenantLayout({ children, params }: TenantLayoutProps) {
       {/* Mobile header */}
       <header className="erp-mobile-header">
         <div className="erp-mobile-brand">
-          <div className="erp-mobile-brand-mark">
-            <div>
-              <LogoMark />
-            </div>
-          </div>
           <span className="erp-mobile-brand-text">Ledger Core</span>
         </div>
 
